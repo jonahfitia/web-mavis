@@ -2610,6 +2610,7 @@ msgstr "Solde correspondant au solde initial et aux lignes du relevé"
 #: model:ir.model.fields.selection,name:account.selection__account_journal__type__bank
 #: model_terms:ir.ui.view,arch_db:account.view_account_move_filter
 #: model_terms:ir.ui.view,arch_db:account.view_account_move_line_filter
+#: model:ir.model.fields.selection,name:account.selection__account_payment_register__journal_type__bank
 #, python-format
 msgid "Bank"
 msgstr "Banque"
@@ -3134,6 +3135,7 @@ msgstr ""
 #: model:ir.model.fields.selection,name:account.selection__account_journal__type__cash
 #: model_terms:ir.ui.view,arch_db:account.view_account_move_filter
 #: model_terms:ir.ui.view,arch_db:account.view_account_move_line_filter
+#: model:ir.model.fields.selection,name:account.selection__account_payment_register__journal_type__cash
 #, python-format
 msgid "Cash"
 msgstr "Espèces"
@@ -9850,6 +9852,12 @@ msgid "Recipient Bank"
 msgstr "Compte bancaire destinataire"
 
 #. module: account
+#: model:ir.model.fields,field_description:account.field_account_payment__journal_type
+#: model:ir.model.fields,field_description:account.field_account_payment_register__journal_type
+msgid "Journal Type"
+msgstr "Type de journal"
+
+#. module: account
 #: model:ir.model.fields,field_description:account.field_account_payment__partner_bank_id
 #: model:ir.model.fields,field_description:account.field_account_payment_register__partner_bank_id
 msgid "Recipient Bank Account"
@@ -13651,6 +13659,12 @@ msgstr "Essayez avec notre exemple de Facture Fournisseur"
 #: model:ir.model.fields,field_description:account.field_account_tour_upload_bill__message_type
 msgid "Type"
 msgstr "Type"
+
+#. module: account
+#: model:ir.model.fields,field_description:account.field_account_journal__is_main_cash
+msgid "Main cash"
+msgstr "Caisse principale"
+
 
 #. module: account
 #: model:ir.model.fields,field_description:account.field_account_bank_statement_line__type_name
