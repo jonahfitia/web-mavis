@@ -33,7 +33,7 @@
                             <group>
                                 <field name="active" invisible="1"/>
                                 <field name="type"/>
-                                <field name="is_main_cash" widget="checkbox" attrs="{'invisible': [('type', 'not in', ['cash'])]}"/>
+                                <field name="nature_of_payment"/>
                             </group>
                             <group>
                                 <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
