@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+
     <menuitem id="menu_my_custom_menu_facture" name="Facture" sequence="10" groups="account.group_account_commercial" web_icon="account,static/description/icon.png" >
-            <menuitem id="menu_my_custom_action"  name="Factures" action="action_move_out_invoice_facture" sequence="1"/>
+        <menuitem id="menu_my_custom_action"  name="Factures" action="action_move_out_invoice_facture" sequence="1"/>
     </menuitem>
-    <menuitem id="menu_dashboard_caisse" name="Caisse" sequence="10" groups="account.group_account_caisse" web_icon="account,static/description/cashier_logo.png" >
-            <menuitem id="menu_board_journal_cash" name="Caisse" action="open_cash_journal_dashboard_kanban" groups="account.group_account_caisse" sequence="1"/>
+    <menuitem id="menu_dashboard_caisse" name="Caisse" sequence="20" groups="account.group_account_caisse" web_icon="account,static/description/cashier_logo.png" >
+        <menuitem id="menu_board_journal_cash" name="Caisse" action="open_cash_journal_dashboard_kanban" groups="account.group_account_caisse" sequence="1"/>
+        <menuitem id="menu_board_journal_cash_transfer" name="Transfert de caisse" action="action_cash_transfer" groups="account.group_account_caisse" sequence="2"/>
     </menuitem>
-    <!-- Top menu item -->
     <menuitem name="Invoicing"
         id="menu_finance"
         groups="account.group_account_readonly,account.group_account_invoice"
         web_icon="account,static/description/icon.png"
         sequence="40">
-
-
         <menuitem id="menu_board_journal_1" name="Dashboard" action="open_account_journal_dashboard_kanban" groups="account.group_account_readonly" sequence="1"/>
         <menuitem id="menu_finance_receivables" name="Customers" sequence="2">
             <menuitem id="menu_action_move_out_invoice_type" action="action_move_out_invoice_type" sequence="1"/>
