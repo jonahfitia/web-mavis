@@ -126,8 +126,6 @@ class AccountBankStmtCashWizard(models.Model):
                         transfer.destination_total_amount = cashbox.total
                     elif balance_type == 'close':
                         transfer.source_total_amount = cashbox.total
-                        
-                        # 🔗 Lier le cashbox à cashbox_end_id
 
 class AccountBankStmtCloseCheck(models.TransientModel):
     """
