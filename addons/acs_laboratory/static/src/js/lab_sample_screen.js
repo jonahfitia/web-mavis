@@ -394,11 +394,6 @@ $(document).ready(function () {
     const departmentSelect = document.getElementById('departmentSelect');
     const savedDepartmentId = localStorage.getItem("department_id");
 
-    console.log('is_logged:', is_logged);
-    console.log('user_info:', user_info);
-    console.log('departments:', departments);
-    console.log('Saved Department ID:', savedDepartmentId);
-
     if (departmentSelect) {
         if (Array.isArray(departments)) {
             departmentSelect.innerHTML = '';

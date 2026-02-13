@@ -769,8 +769,8 @@
             </div>
     </template>
 
-    <!-- <template id="external_layout_lab_imm"> -->
-    <template id="external_layout_standard">
+    <template id="external_layout_lab_imm">
+    <!-- <template id="external_layout"> -->
         <div t-attf-class="header" t-att-style="report_header_style">
                 <div class="o_lab_imm_header">
                     <div class="row">

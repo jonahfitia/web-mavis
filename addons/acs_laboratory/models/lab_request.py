@@ -127,7 +127,6 @@ class LaboratoryRequest(models.Model):
                 }))
             self.line_ids = test_line_ids
 
-
     @api.onchange('collection_center_id')
     def onchange_laboratory_id(self):
         if self.collection_center_id:
