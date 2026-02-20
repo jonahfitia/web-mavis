@@ -327,7 +327,7 @@ function hideLoading() {
 async function logout() {
     const activeSample = JSON.parse(localStorage.getItem("activeSample"));
     if (activeSample) {
-        const confirmed = await showConfirm("Y a encore des consommables en cours de traitement.\n Êtes-vous sûr de vouloir vous déconnecter ?");
+        const confirmed = await showConfirm("Êtes-vous sûr de vouloir vous déconnecter ?");
         if (!confirmed) return;
     }
     showLoading();
@@ -345,22 +345,23 @@ $(document).ready(function () {
     console.log('lab_sample_screen.js loaded ------------------ ');
 
     const pageData = document.getElementById('pageData');
-    let isDepartementClicked = false;
+
+    let isDepartementClicked = false; // bouton pour checker l'ouverture du modal pour la selection de departement
+
+    const departmentSelect = document.getElementById('departmentSelect');
+    const savedDepartmentId = localStorage.getItem("department_id");
+    const tokenInput = document.getElementById("tokenInput");
+    const saveBtn = document.getElementById("save_collection_btn");
+    const modal = document.getElementById("customModal");
+    const tokenContainer = document.getElementById("tokenContainer");
+    const departmentContainer = document.getElementById("departmentContainer");
 
     if (!pageData) {
         console.error("pageData element not found!");
         return;
     }
-    console.log('pageData dataset:', pageData.dataset);
 
-    // let is_logged = pageData.dataset.isLogged;
     let is_logged = pageData.dataset.isLogged === "true";
-    let user_info = {};
-    try {
-        user_info = JSON.parse(pageData.dataset.userInfo || '{}');
-    } catch (e) {
-        console.error("Erreur JSON user_info:", e);
-    }
 
     let departments = [];
     if (pageData?.dataset?.departments) {
@@ -373,36 +374,36 @@ $(document).ready(function () {
         console.warn("departments dataset absent");
     }
 
-    toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "300",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-    };
+    // toastr.options = {
+    //     "closeButton": true,
+    //     "debug": false,
+    //     "newestOnTop": false,
+    //     "progressBar": true,
+    //     "positionClass": "toast-top-right",
+    //     "preventDuplicates": false,
+    //     "onclick": null,
+    //     "showDuration": "300",
+    //     "hideDuration": "1000",
+    //     "timeOut": "5000",
+    //     "extendedTimeOut": "1000",
+    //     "showEasing": "swing",
+    //     "hideEasing": "linear",
+    //     "showMethod": "fadeIn",
+    //     "hideMethod": "fadeOut"
+    // };
 
-    const departmentSelect = document.getElementById('departmentSelect');
-    const savedDepartmentId = localStorage.getItem("department_id");
-
+    // REMPLISSAGE DEPARTEMENT SELECT par les départements reçus du serveur (filtrés par société)
     if (departmentSelect) {
+        console.log('-------------//-Departments from dataset:', departments);
         if (Array.isArray(departments)) {
             departmentSelect.innerHTML = '';
 
             // Option par défaut
-            const defaultOption = document.createElement('option');
-            defaultOption.value = localStorage.getItem("department_id") || '';
+            // const defaultOption = document.createElement('option');
+            // defaultOption.value = localStorage.getItem("department_id") || '';
             // defaultOption.textContent = '-- Sélectionner un département --';
-            departmentSelect.appendChild(defaultOption);
+            // defaultOption.disabled = true;
+            // departmentSelect.appendChild(defaultOption);
 
             departments.forEach(dept => {
                 const [id, name] = dept;
@@ -413,24 +414,24 @@ $(document).ready(function () {
                 if (savedDepartmentId && savedDepartmentId == id) option.selected = true;
                 departmentSelect.appendChild(option);
             });
+
         }
     }
 
-    console.log('Modal logic check: is_logged=', is_logged, ', savedDepartmentId=', savedDepartmentId);
-    openModal(is_logged, isDepartementClicked);
+    // console.log('Modal logic check: is_logged=', is_logged, ', savedDepartmentId=', savedDepartmentId);
+    openModal(is_logged, isDepartementClicked, modal, tokenContainer, departmentContainer);
     updateDepartmentLabel();
 
     $("#save_collection_btn").on("click", function () {
         const selectedDepartment = $("#departmentSelect").val();
         const tokenInput = $("#tokenInput");
         const token = tokenInput.length ? tokenInput.val() : null;
-
-        if (!selectedDepartment) {
-            toastr.error("Veuillez sélectionner un département !");
-            return;
-        }
+        console.log("-----//-selectedDepartment", selectedDepartment);
+        console.log("-----//-$(#departmentSelect).val()", $("#departmentSelect"));
+        let is_finished = false;
 
         if (!is_logged) {
+
             // Pour utilisateur non connecté: login + département
             if (!token) {
                 toastr.error("Veuillez Scannez votre code barre!");
@@ -443,43 +444,74 @@ $(document).ready(function () {
                 type: "POST",
                 data: { token: token },
                 success: function (response) {
-                    console.log('login response', response);
-                    if (response.success) {
-                        localStorage.setItem("department_id", selectedDepartment);
-                        isDepartementClicked = false;
-                        updateDepartmentLabel();
-                        location.reload();
-                    } else {
+                    if (!response.success) {
                         toastr.error(response.message || "Erreur d'authentification");
+                        return;
                     }
+                    if (response.success) {
+                        is_logged = true;
+                        toastr.success("Connexion réussie. Choisissez un département.");
+                    }
+
+                    console.log('-------------//-Departments from login response:', response.departments);
+                    // remplir le select avec les départements reçus
+                    if (response.departments && response.departments.length) {
+                        $("#departmentSelect").empty();
+                        // $("#departmentSelect").append(`<option value="" disabled selected>-- Sélectionner un département --</option>`);
+
+                        response.departments.forEach(function (dept) {
+                            $("#departmentSelect").append(
+                                `<option value="${dept.id}">${dept.name}</option>`
+                            );
+                        });
+
+                        $("#tokenContainer").hide();
+                        $("#departmentContainer").show();
+                        departmentContainer.style.display = "block";
+                    }
+
+                    console.log('-login response', response);
+                    isDepartementClicked = false;
+                    localStorage.setItem("department_id", selectedDepartment);
+                    updateDepartmentLabel();
+                    is_finished = true;
                 },
                 error: function () {
-                    toastr.error("Erreur d'authentification");
+                    toastr.error("Erreur serveur");
                 }
             });
+
         } else {
+            console.log('Selected Department on Save:', selectedDepartment);
+            if (!selectedDepartment || selectedDepartment === "null" || selectedDepartment === "") {
+                toastr.error("Veuillez sélectionner un département !");
+                return;
+            }
+
+
             // Pour utilisateur déjà connecté: juste sauvegarder le département
             localStorage.setItem("department_id", selectedDepartment);
             isDepartementClicked = false;
             updateDepartmentLabel();
             document.getElementById("customModal").style.display = "none";
             is_logged = true;
+            is_finished = true;
+
         }
+
+        if (is_finished) {
+            location.reload();
+            is_finished = false;
+        }
+        console.log('-------------Selected Department ID:', selectedDepartment);
+
     });
 
     closeModal();
 
-    function updateDepartmentLabel() {
-        const deptName = $("#departmentSelect option:selected").text();
-        $("#show_modal_prel span.dept_name").remove();
-        $("#show_modal_prel").append(
-            `<span class="dept_name" style="margin-left:8px;">: ${deptName}</span>`
-        );
-    }
-
     $("#show_modal_prel").on("click", function () {
         isDepartementClicked = true;
-        openModal(is_logged, isDepartementClicked);
+        openModal(is_logged, isDepartementClicked, modal, tokenContainer, departmentContainer);
     });
 
     let timer = null;
@@ -494,37 +526,61 @@ $(document).ready(function () {
     $("#logout-button").on("click", logout);
 });
 
-function openModal(isLogged_check, isDepartementClicked) {
-    const modal = document.getElementById("customModal");
-    const tokenContainer = document.getElementById("tokenContainer");
-    const deptContainer = document.getElementById("departmentContainer");
+function openModal(isLogged_check, isDepartementClicked, modal, tokenContainer, departmentContainer) {
 
-    // Par défaut : cacher tout
+    // Cacher tout au départ
     if (tokenContainer) tokenContainer.style.display = "none";
-    if (deptContainer) deptContainer.style.display = "none";
+    if (departmentContainer) departmentContainer.style.display = "none";
+    modal.style.display = "none";
 
-    // CAS 1 : non cliqué + connecté → on ne montre rien
-    if (!isDepartementClicked && isLogged_check) {
-        modal.style.display = "none";
+    // ==============================
+    // CAS 1 : connecté + déjà département → rien afficher
+    // ==============================
+    if (!isDepartementClicked && isLogged_check && localStorage.getItem("department_id")) {
+        console.log('CAS 1: connecté + dept déjà choisi → modal caché');
         return;
     }
 
-    // Tous les autres cas → modal visible
+    // On affiche le modal
     modal.style.display = "flex";
 
-    // CAS 2 : non connecté (cliqué ou non)
+    // ==============================
+    // CAS 2 : NON connecté
+    // ==============================
     if (!isLogged_check) {
+        console.log('CAS 2: non connecté → afficher seulement token');
         if (tokenContainer) tokenContainer.style.display = "block";
-        if (deptContainer) deptContainer.style.display = "block";
-        return;
+        return; // 🔥 IMPORTANT → on ne montre PAS le département
     }
 
-    // CAS 3 : cliqué + connecté
-    if (isDepartementClicked && isLogged_check) {
-        if (deptContainer) deptContainer.style.display = "block";
+    // ==============================
+    // CAS 3 : connecté (changement dept)
+    // ==============================
+    if (isLogged_check) {
+        console.log('CAS 3: connecté → afficher département');
+        if (departmentContainer) departmentContainer.style.display = "block";
     }
 }
 
+function updateDepartmentLabel() {
+    const deptName = $("#departmentSelect option:selected").text();
+    $("#show_modal_prel span.dept_name").remove();
+    $("#show_modal_prel").append(
+        `<span class="dept_name" style="margin-left:8px;">: ${deptName}</span>`
+    );
+}
+
+function disableButton(saveBtnTmp) {
+    saveBtnTmp.disabled = true;
+    saveBtnTmp.style.opacity = "0.3";
+    saveBtnTmp.style.pointerEvents = "none";
+}
+
+function enableButton(saveBtnTmp) {
+    saveBtnTmp.disabled = false;
+    saveBtnTmp.style.opacity = "1";
+    saveBtnTmp.style.pointerEvents = "auto";
+}
 
 // Handle search input
 function handleSearchInput(timer, $input) {

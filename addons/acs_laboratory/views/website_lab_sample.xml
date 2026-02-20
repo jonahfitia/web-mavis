@@ -33,7 +33,7 @@
                             <input type="password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="tokenInput" class="form-control" 
                 style="font-size: 1.4em; padding: 12px; border-radius: 10px; text-align: center;"/>
                         </div>
-                        <div id="departmentContainer">
+                        <div id="departmentContainer" style="display:none;">
                             <p style="font-size:1.2em; font-weight:500;">Veuillez choisir le Département :</p>
                             <select id="departmentSelect" class="form-control" 
             style="font-size:1.3em; border-radius: 10px;">

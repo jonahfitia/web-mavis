@@ -80,26 +80,32 @@ class ACSHms(http.Controller):
             request.session.touch()
 
         user = request.env.user
-        user_company = request.env.user.company_id.id
         is_logged = not user._is_public()
         user_info = False
+        departments_data = []
 
+        _logger.info(f"---* User ID: {user.id}, Is Logged In: {is_logged}, User Company ID: {user.company_id.id if user.company_id else 'None'}")
         if is_logged:
+            # Filtrer les départements par la société de l'utilisateur
+            user_company = user.company_id
+            departments = request.env['hr.department'].sudo().search([('company_id', '=', user_company.id)])
+            departments_data = [(dept.id, dept.name) for dept in departments]
+            
             image_url = f"/web/image/res.users/{user.id}/image_128"
             user_info = {
                 'name': user.name,
                 'email': user.email,
                 'id': user.id,
                 'image_url': image_url,
-                'user_company': user_company,
+                'user_company': user_company.id,
                 # 'image_url': user.image_128.decode('utf-8') if user.image_128 else None
             }
 
-        # Récupérer tous les départements
-        departments = request.env['hr.department'].sudo().search([])
-        departments_data = [(dept.id, dept.name) for dept in departments]
+        # # Récupérer tous les départements
+        # departments = request.env['hr.department'].sudo().search([])
+        # departments_data = [(dept.id, dept.name) for dept in departments]
         
-        _logger.info(f"---* is_logged: {is_logged}, user_info: {user_info}, departments found: {len(departments_data)}")
+        _logger.info(f"---* is_logged: {is_logged}, departments found: {len(departments_data)}")
         return request.render(
         'acs_laboratory.laboratory_screen_sample',
         {
