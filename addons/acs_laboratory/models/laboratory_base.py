@@ -715,8 +715,6 @@ class PatientLabSample(models.Model):
         picking.action_confirm()
         picking.action_assign()
 
-        MoveLine = self.env['stock.move.line']
-
         for line in unprocessed_lines:
             move = self.env['stock.move'].search([
                 ('picking_id','=',picking.id),
@@ -726,39 +724,49 @@ class PatientLabSample(models.Model):
             if not move:
                 continue
             
-            move_line = MoveLine.search([
+            move_line = self.env['stock.move.line'].search([
                 ('move_id', '=', move.id),
-                ('lot_id','=',False)],limit=1)
-            _logger.info("Found move line for product %s: %s", line.product_id.name, move_line)
-            
+            ], limit=1)
+
             if not move_line:
-                continue
+                move_line = self.env['stock.move.line'].create({
+                    'move_id': move.id,
+                    'picking_id': picking.id,
+                    'product_id': move.product_id.id,
+                    'product_uom_id': move.product_uom.id,
+                    'location_id': move.location_id.id,
+                    'location_dest_id': move.location_dest_id.id,
+                    'qty_done': line.qty,
+                })
+            else:
+                move_line.qty_done = line.qty
             
-            move_line.qty_done = line.qty
-            
-            # 🔥 Gestion des lots si tracking activé
-            if move.product_id.tracking != 'none' and not move_line.lot_id:
-                _logger.info("Product %s requires tracking. Creating lot...", line.product_id.name)
-                # lot = StockLot.create({
+            if move.product_id.tracking != 'none':
                 lot = self.env['stock.production.lot'].create({
                     'name': f'LOT-{self.name}-{line.id}',
                     'product_id': move.product_id.id,
                     'company_id': self.company_id.id,
                 })
                 move_line.lot_id = lot.id
-            
+
             _logger.info("finalizing action_collect ...")
             line.move_id = move.id
             
         _logger.info("Before validation: state=%s", picking.state)
         try:
             _logger.info("Validating picking...")
-            picking.button_validate()
+            
+            res = picking.button_validate()
+            if isinstance(res, dict):
+                # Wizard returned → process it automatically
+                wizard = self.env[res['res_model']].browse(res['res_id'])
+                wizard.process()
+
+            # _logger.info("Total qty_done: %s", sum(picking.move_line_ids.mapped('qty_done')))
             _logger.info("Picking validated successfully. Current state: %s", picking.state)
         except Exception as e:
             _logger.error("VALIDATION ERROR: %s", str(e))
             raise
-
 
     def show_picking(self):
         for rec in self:

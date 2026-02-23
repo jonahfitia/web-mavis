@@ -300,7 +300,7 @@ function collectData(lab_request_ref) {
                     console.log('response', response.result.data);
                     renderElement(response.result.data);
                 } else {
-                    toastr.error("Error  " + response?.error?.data?.message);
+                    toastr.error(response?.error?.data?.message);
                 }
             },
             error: function () {
@@ -739,7 +739,7 @@ function updateConsumables(sampleId, consumables, savedDepartmentId) {
                 $(".sample_item.active").remove();
                 $("#sample_details").empty();
             } else {
-                toastr.error("Error  " + response?.error?.data?.message);
+                toastr.error(response?.error?.data?.message);
             }
         },
         error: function () {

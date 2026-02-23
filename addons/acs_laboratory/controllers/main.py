@@ -30,7 +30,7 @@ class ACSHms(http.Controller):
     def custom_login(self, token=None, redirect_url='/laboratory_sample_test', **kwargs):
         #Default to localhost if request.httprequest.host_url is not set
         url = request.httprequest.host_url.rstrip('/') if request.httprequest.host_url else 'http://localhost:8069'
- 
+        
         database = 'sandbox'
         print('Token:', token)
         try:
@@ -88,7 +88,13 @@ class ACSHms(http.Controller):
         if is_logged:
             # Filtrer les départements par la société de l'utilisateur
             user_company = user.company_id
-            departments = request.env['hr.department'].sudo().search([('company_id', '=', user_company.id)])
+            
+            departments = user.department_ids.filtered(
+                lambda d: d.company_id == user_company
+            )
+            _logger.info("User departments: %s | Company: %s",
+                departments.mapped('name'),
+                user_company.name)
             departments_data = [(dept.id, dept.name) for dept in departments]
             
             image_url = f"/web/image/res.users/{user.id}/image_128"

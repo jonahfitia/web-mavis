@@ -36,10 +36,11 @@ class BarcodeAuthController(http.Controller):
 
         user = card.user_id
 
-# 🔥 Ici on récupère les départements de la société de l'utilisateur
-        departments = request.env['hr.department'].sudo().search([
-            ('company_id', '=', user.company_id.id)
-        ])
+        # 🔥 Ici on récupère les départements de la société de l'utilisateur
+        
+        departments = user.department_ids.filtered(
+                lambda d: d.company_id == user.company_id
+            )
         
         request.session.uid = user.id
         request.session.login = user.login
