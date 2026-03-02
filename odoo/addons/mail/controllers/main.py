@@ -350,6 +350,7 @@ class MailController(http.Controller):
         - filter_type='notifications' → Notifications système seulement
         """
         try:
+            _logger.debug(f"***************get_combined_discussions called with filter_type={filter_type}, limit={limit}, offset={offset}")
             limit = int(limit)
             offset = int(offset)
             partner = request.env.user.partner_id
@@ -424,15 +425,18 @@ class MailController(http.Controller):
             
             display_name = canal['name']
             display_text = clean_text
+            avatar_url = ""
 
             if canal['channel_type'] == 'chat':
                 other_members = [m['id'] for m in canal.get('members', []) if m['id'] != partner.id]
                 if other_members:
                     other_member = request.env['res.partner'].sudo().browse(other_members[0])
                     display_name = other_member.name or other_member.email
+                    avatar_url = f"/web/image/res.partner/{other_member.id}/image_128"
                 if is_mine:
                     display_text = f"⤻ Vous : {clean_text}"
             else:
+                # avatar_url = f"/web/image/mail.channel/{canal['id']}/image_128"
                 display_text = f"⤻ {'Vous' if is_mine else last_message.author_id.name} : {clean_text}"
             
             formatted_channels.append({
@@ -444,7 +448,8 @@ class MailController(http.Controller):
                 'channelId': canal['id'],
                 'email': getattr(last_message.author_id, 'email', ''),
                 'unreadCount': unread_count,
-                'filter_type': 'channel'
+                'filter_type': 'channel',
+                'profileImage': avatar_url
             })
         
         # Trier et paginer
