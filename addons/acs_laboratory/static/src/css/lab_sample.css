@@ -108,7 +108,7 @@ div#product_list {
 .right_side {
   display: flex;
   flex-direction: column;
-  padding: 25px;
+  padding: 5px;
   flex-basis: 60%;
   border-left: 0.1px solid #ccc;
   overflow-y: scroll;
@@ -126,13 +126,13 @@ div#product_list {
 
 .right_side::-webkit-scrollbar-thumb,
 .items::-webkit-scrollbar-thumb {
-  background-color: #08467f;
+  background-color: #076aad;
   border-radius: 10px;
 }
 
 .right_side::-webkit-scrollbar-thumb:hover,
 .items::-webkit-scrollbar-thumb:hover {
-  background: #08467f;
+  background: #076aad;
 }
 
 .sample {
@@ -152,7 +152,7 @@ div#product_list {
   padding: 8px;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #08467f;
+  background: #076aad;
   --_m: conic-gradient(#0000 10%, #000), linear-gradient(#000 0 0) content-box;
   -webkit-mask: var(--_m);
   mask: var(--_m);
@@ -209,7 +209,7 @@ div#customModal {
   background-color: #f0f0f0;
   box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px,
     rgba(0, 0, 0, 0.22) 0px 15px 12px;
-  border-color: #08467f;
+  border-color: #076aad;
   scale: 104%;
 }
 
@@ -257,16 +257,16 @@ div#customModal {
 }
 
 .input-group-prepend {
-  background-color: #08467f;
-  border-color: #08467f;
+  background-color: #076aad;
+  border-color: #076aad;
   display: flex;
   align-items: center;
   border-radius: 5px 0 0 5px;
 }
 
 .input-group-append {
-  background-color: #08467f;
-  border-color: #08467f;
+  background-color: #076aad;
+  border-color: #076aad;
   display: flex;
   align-items: center;
   border-radius: 0 5px 5px 0;
@@ -278,6 +278,7 @@ div#customModal {
   padding: 5px;
   border-radius: 5px;
   margin-bottom: 5px;
+  background-color: #e2f0fb;
 }
 
 i.fa {
@@ -294,8 +295,8 @@ button#collect {
   gap: 9px;
   border: none;
   color: #ffffff;
-  background-color: #08467f;
-  border-color: #08467f;
+  background-color: #076aad;
+  border-color: #076aad;
   justify-content: center;
   align-items: center;
 
@@ -337,6 +338,12 @@ h3 {
 
 input#search_input {
   width: 25vw;
+}
+
+h4#error_message_for_stock {
+  color: red;
+  font-weight: bold;
+  margin-bottom: 10px;
 }
 
 div#rendered_sample {
@@ -391,7 +398,7 @@ h4 {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #08467f;
+  background: #076aad;
   border-radius: 0px 5px 5px 0;
   color: white;
   margin: -3px;
@@ -441,7 +448,7 @@ h4 {
 }
 
 .user_content span {
-  color: #08467f;
+  color: #076aad;
   font-size: 12px !important;
   font-weight: 600;
 }
@@ -450,7 +457,7 @@ h4 {
 #logout-button,
 .save_collection_btn,
 #show_modal_prel {
-  background-color: #08467f;
+  background-color: #076aad;
   color: #fff;
   border: none;
   outline: none;
@@ -535,8 +542,8 @@ label {
 
 .btn-primary-custom {
   color: #fff;
-  background-color: #08467f;
-  border-color: #08467f;
+  background-color: #076aad;
+  border-color: #076aad;
 }
 
 .items {
@@ -551,8 +558,7 @@ label {
 }
 
 .modal-header {
-  background-color: #08467f;
-  color: white;
+  color: #076aad;
   border-bottom: 1px solid #ddd;
   display: flex;
   justify-content: space-between;
@@ -560,6 +566,12 @@ label {
 
 .modal-body {
   padding: 20px;
+}
+
+.modal-title {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #076aad;
 }
 
 .modal-footer {
@@ -636,7 +648,7 @@ select option {
 
 .select-items {
   position: absolute;
-  background-color: #08467f;
+  background-color: #076aad;
   top: 100%;
   left: 0;
   right: 0;
@@ -756,7 +768,7 @@ select option {
   height: var(--checkbox-height);
   width: var(--checkbox-height);
   background-color: transparent;
-  border: calc(var(--checkbox-height) * 0.1) solid #08467f;
+  border: calc(var(--checkbox-height) * 0.1) solid #076aad;
   border-radius: 5px;
   position: relative;
   display: inline-block;
@@ -778,7 +790,7 @@ select option {
   position: absolute;
   height: 0;
   width: calc(var(--checkbox-height) * 0.2);
-  background-color: #08467f;
+  background-color: #076aad;
   display: inline-block;
   -moz-transform-origin: left top;
   -ms-transform-origin: left top;
@@ -815,7 +827,7 @@ select option {
 
 .checkbox-wrapper-19 input[type="checkbox"]:checked+.check-box,
 .checkbox-wrapper-19 .check-box.checked {
-  border-color: #08467f;
+  border-color: #076aad;
 }
 
 .checkbox-wrapper-19 input[type="checkbox"]:checked+.check-box::after,

@@ -488,7 +488,6 @@ $(document).ready(function () {
                 return;
             }
 
-
             // Pour utilisateur déjà connecté: juste sauvegarder le département
             localStorage.setItem("department_id", selectedDepartment);
             isDepartementClicked = false;
@@ -496,7 +495,6 @@ $(document).ready(function () {
             document.getElementById("customModal").style.display = "none";
             is_logged = true;
             is_finished = true;
-
         }
 
         if (is_finished) {
@@ -504,7 +502,6 @@ $(document).ready(function () {
             is_finished = false;
         }
         console.log('-------------Selected Department ID:', selectedDepartment);
-
     });
 
     closeModal();
@@ -593,6 +590,7 @@ function handleSearchInput(timer, $input) {
         $input.val("");
         $input.blur();
         $input.focus();
+        $("#error_message_for_stock").empty();
     }, 500);
 }
 
@@ -738,8 +736,11 @@ function updateConsumables(sampleId, consumables, savedDepartmentId) {
                 );
                 $(".sample_item.active").remove();
                 $("#sample_details").empty();
+                $("#error_message_for_stock").empty();
             } else {
-                toastr.error(response?.error?.data?.message);
+                // toastr.error(response?.error?.data?.message);
+                error_message = response?.error?.data?.message || "Erreur de mise à jour";
+                $("#error_message_for_stock").text("⚠️ " + error_message);
             }
         },
         error: function () {

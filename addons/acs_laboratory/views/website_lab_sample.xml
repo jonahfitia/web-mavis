@@ -3,11 +3,12 @@
     <template id="laboratory_screen_sample" name="Next Patient view">
         <head>
             <script src="/web/static/lib/jquery/jquery.js" type="text/javascript"></script>
-            <link rel="stylesheet" href="/acs_laboratory/static/src/css/lab_sample.css"/>
-            <link rel="stylesheet" href='/acs_laboratory/static/src/css/bootstrap.min.css'/>
-            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
-            <link href="/acs_laboratory/static/src/css/all.min.css" rel="stylesheet"/>
-            <link href="/acs_laboratory/static/src/css/toastr.min.css" rel="stylesheet"/>
+            <link rel="stylesheet" href="/acs_laboratory/static/src/css/lab_sample.css" />
+            <link rel="stylesheet" href='/acs_laboratory/static/src/css/bootstrap.min.css' />
+            <link rel="stylesheet"
+                href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+            <link href="/acs_laboratory/static/src/css/all.min.css" rel="stylesheet" />
+            <link href="/acs_laboratory/static/src/css/toastr.min.css" rel="stylesheet" />
             <script src="/acs_laboratory/static/src/js/toastr.min.js"></script>
             <script src="/acs_laboratory/static/src/js/lab_sample_screen.js"></script>
         </head>
@@ -22,62 +23,70 @@
                 <div id="loading-spinner"></div>
             </div>
             <div id="customModal" role="dialog" style="display:none;">
-                <div class="modal-content" style="width: 90%; max-width: 500px; padding: 10px; border-radius: 15px;">
+                <div class="modal-content"
+                    style="width: 90%; max-width: 500px; padding: 10px; border-radius: 15px;">
                     <div class="modal-header" style="text-align: center;">
-                        <p class="modal-title" style="font-size: 1.8em; font-weight: bold; color: white">Confirmation</p>
+                        <p class="modal-title">Confirmation</p>
                     </div>
-                    <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div class="modal-body"
+                        style="display: flex; flex-direction: column; gap: 20px;">
                         <div id="modalError" style="color:red; font-weight:bold; display:none;"></div>
                         <div id="tokenContainer">
-                            <label for="tokenInput" style="font-size:1.2em; font-weight:500;">Scanner le code-barres :</label>
-                            <input type="password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="tokenInput" class="form-control" 
-                style="font-size: 1.4em; padding: 12px; border-radius: 10px; text-align: center;"/>
+                            <label for="tokenInput" style="font-size:1.2em; font-weight:500;">Scanner
+                                le code-barres :</label>
+                            <input type="password" autocomplete="off" autocorrect="off"
+                                autocapitalize="off" spellcheck="false" id="tokenInput"
+                                class="form-control"
+                                style="font-size: 1.4em; padding: 12px; border-radius: 10px; text-align: center;" />
                         </div>
                         <div id="departmentContainer" style="display:none;">
-                            <p style="font-size:1.2em; font-weight:500;">Veuillez choisir le Département :</p>
-                            <select id="departmentSelect" class="form-control" 
-            style="font-size:1.3em; border-radius: 10px;">
+                            <p style="font-size:1.2em; font-weight:500;">Veuillez choisir le
+                                Département :</p>
+                            <select id="departmentSelect" class="form-control"
+                                style="font-size:1.3em; border-radius: 10px;">
                             </select>
                         </div>
                     </div>
                     <div class="modal-footer" style="display: flex; justify-content: center;">
-                        <button type="button" id="save_collection_btn" class="btn btn-primary-custom" 
+                        <button type="button" id="save_collection_btn"
+                            class="btn btn-primary-custom"
                             style="font-size: 1.5em; border-radius: 12px; width: 60%;">
-                            <span class="material-symbols-outlined" style="font-size:1.5em;">save</span> OK
-                        </button>
+                            <span class="material-symbols-outlined" style="font-size:1.5em;">save</span>
+                            OK </button>
                     </div>
                 </div>
             </div>
             <section>
-                <t t-set="user_info_drt" t-value="json.loads(user_info_json)"/>
+                <t t-set="user_info_drt" t-value="json.loads(user_info_json)" />
                 <t t-if="user_info_drt">
                     <div class="user_profile">
                         <div class="user_avatar">
                             <t t-if="user_info_drt.get('image_url')">
-                                <img t-att-src="user_info_drt.get('image_url')" style="max-height:45px;" alt="User"/>
+                                <img t-att-src="user_info_drt.get('image_url')"
+                                    style="max-height:45px;" alt="User" />
                             </t>
                         </div>
                         <div class="user_content">
                             <span>
-                                <t t-esc="user_info_drt.get('name')"/>
+                                <t t-esc="user_info_drt.get('name')" />
                             </span>
                             <span>
-                                <t t-esc="user_info_drt.get('email')"/>
+                                <t t-esc="user_info_drt.get('email')" />
                             </span>
                         </div>
                         <div class="custom_btn_group">
-                            <button type="button" id="show_modal_prel" class="btn btn-lg mt16 js_check_product a-submit d-block d-sm-inline-block" >
+                            <button type="button" id="show_modal_prel"
+                                class="btn btn-lg mt16 js_check_product a-submit d-block d-sm-inline-block">
                                 <span class="material-symbols-outlined">
                                     bottom_app_bar
                                 </span>
-                                 Département
-                            </button>
-                            <button type="button" id="logout-button" class="btn btn-primary btn-lg mt16 js_check_product a-submit d-block d-sm-inline-block" >
+                                Département </button>
+                            <button type="button" id="logout-button"
+                                class="btn btn-primary btn-lg mt16 js_check_product a-submit d-block d-sm-inline-block">
                                 <span class="material-symbols-outlined">
                                     logout
                                 </span>
-                                Deconnecter
-                            </button>
+                                Deconnecter </button>
                         </div>
                     </div>
                 </t>
@@ -86,35 +95,39 @@
                         <div class="search_head">
                             <!-- <h3>Laboratory Sample</h3> -->
                             <div class="form-group">
-                                <input type="text" name="search_input" placeholder="ID lab request , Ex :LR014"  class=" form-control search_input" id="search_input" />
+                                <input type="text" name="search_input"
+                                    placeholder="ID lab request , Ex :LR014"
+                                    class=" form-control search_input" id="search_input" />
                                 <span class="material-symbols-outlined search-icon">
-                                        search
-                                    </span>
+                                    search
+                                </span>
                             </div>
                         </div>
                         <h3 class="right_title">Details de l'échantillon </h3>
                         <div class="checkbox-wrapper-19">
-                            <input type="checkbox" id="ex_collect_checkbox" name="external_collection_checkbox"  />
-                            <label for="ex_collect_checkbox" class="check-box"/>
-                            <span  class="checkbox_label">Prélèvement Externe</span>
+                            <input type="checkbox" id="ex_collect_checkbox"
+                                name="external_collection_checkbox" />
+                            <label for="ex_collect_checkbox" class="check-box" />
+                            <span class="checkbox_label">Prélèvement Externe</span>
                         </div>
                         <div id="sample_details"></div>
-                        <button id="collect" class="btn btn-primary btn-lg mt16 js_check_product a-submit d-block d-sm-inline-block" >
+                        <button id="collect"
+                            class="btn btn-primary btn-lg mt16 js_check_product a-submit d-block d-sm-inline-block">
                             <span class="material-symbols-outlined">
-                                    update
-                                </span>
-                                Collecter
-                        </button>
+                                update
+                            </span>
+                            Collecter </button>
                     </div>
-                    <div class="right_side" >
+                    <div class="right_side">
+                        <h4 id="error_message_for_stock"></h4>
                         <div id="rendered_sample">
                             <div class="content">
                                 <h4>
-                                Veuillez Scanner le code bare
-                            </h4>
+                                    Veuillez Scanner le code bare
+                                </h4>
                                 <span class="material-symbols-outlined">
-                                hourglass_empty
-                            </span>
+                                    hourglass_empty
+                                </span>
                             </div>
                         </div>
                     </div>

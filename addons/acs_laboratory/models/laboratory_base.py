@@ -568,7 +568,7 @@ class PatientLabSample(models.Model):
             self.patient_id = self.request_id.patient_id.id
 
     def action_collect(self):
-        _logger.info("Starting action_collect ...%s" , self.department_id.id)
+        _logger.info("Starting action_collect . . . %s" , self.department_id.id)
         self.consume_lab_material()
         self.state = 'collect'
 
@@ -668,11 +668,12 @@ class PatientLabSample(models.Model):
                     line.product_id.display_name, available_qty, line.qty)
                 insufficient_products.append(
                     "%s %s (%s dispo)\n" % (
-                        line.qty,
+                        int(line.qty),
                         line.product_id.display_name,
-                        available_qty
+                        int(available_qty)
                     )
                 )
+
                 
             move_lines.append((0, 0, {
                 'name': line.product_id.name,
@@ -697,7 +698,6 @@ class PatientLabSample(models.Model):
             raise UserError(_(
                 "Stock insuffisant pour :\n\n%s"
             ) % "\n".join(insufficient_products))
-
             
         picking_vals = {
             'partner_id': self.patient_id.partner_id.id,
