@@ -1,0 +1,87 @@
+<odoo noupdate="0">
+    <!-- Email -->
+    <record id="mail.mail_activity_data_email" model="mail.activity.type">
+        <field name="fcm_color">#00BCD4</field>
+        <field name="fcm_display_name">Emails</field>
+    </record>
+    <!-- Call -->
+    <record id="mail.mail_activity_data_call" model="mail.activity.type">
+        <field name="fcm_color">#2196F3</field>
+        <field name="fcm_display_name">Appels à faire</field>
+    </record>
+    <!-- Meeting -->
+    <record id="mail.mail_activity_data_meeting" model="mail.activity.type">
+        <field name="fcm_color">#9C27B0</field>
+        <field name="fcm_display_name">Réunions</field>
+    </record>
+    <!-- To Do -->
+    <record id="mail.mail_activity_data_todo" model="mail.activity.type">
+        <field name="fcm_color">#4CAF50</field>
+        <field name="fcm_display_name">Tâches à faire</field>
+    </record>
+    <!-- Upload Document -->
+    <record id="mail.mail_activity_data_upload_document" model="mail.activity.type">
+        <field name="fcm_color">#607D8B</field>
+        <field name="fcm_display_name">Documents à uploader</field>
+    </record>
+    <!-- Warning / Exception -->
+    <record id="mail.mail_activity_data_warning" model="mail.activity.type">
+        <field name="fcm_color">#F44336</field>
+        <field name="fcm_display_name">Exceptions</field>
+    </record>
+    <!-- Order Upsell -->
+    <record id="sale.mail_act_sale_upsell" model="mail.activity.type">
+        <field name="fcm_color">#FF5722</field>
+        <field name="fcm_display_name">Ventes incitatives</field>
+    </record>
+    <!-- Contract to Renew -->
+    <record id="fleet.mail_act_fleet_contract_to_renew" model="mail.activity.type">
+        <field name="fcm_color">#795548</field>
+        <field name="fcm_display_name">Contrats à renouveler</field>
+    </record>
+    <!-- Time Off Approval -->
+    <record id="hr_holidays.mail_act_leave_approval" model="mail.activity.type">
+        <field name="fcm_color">#009688</field>
+        <field name="fcm_display_name">Congés à approuver</field>
+    </record>
+    <!-- Time Off Second Approval -->
+    <record id="hr_holidays.mail_act_leave_second_approval" model="mail.activity.type">
+        <field name="fcm_color">#009688</field>
+        <field name="fcm_display_name">2ᵉ approbation congés</field>
+    </record>
+    <!-- Allocation Approval -->
+    <record id="hr_holidays.mail_act_leave_allocation_approval" model="mail.activity.type">
+        <field name="fcm_color">#3F51B5</field>
+        <field name="fcm_display_name">Allocations à approuver</field>
+    </record>
+    <!-- Allocation Second Approval -->
+    <record id="hr_holidays.mail_act_leave_allocation_second_approval" model="mail.activity.type">
+        <field name="fcm_color">#3F51B5</field>
+        <field name="fcm_display_name">2ᵉ approbation allocations</field>
+    </record>
+    <!-- Maintenance Request -->
+    <record id="maintenance.mail_act_maintenance_request" model="mail.activity.type">
+        <field name="fcm_color">#8BC34A</field>
+        <field name="fcm_display_name">Demandes de maintenance</field>
+    </record>
+    <!-- Expense Approval -->
+    <record id="hr_expense.mail_act_expense_approval" model="mail.activity.type">
+        <field name="fcm_color">#673AB7</field>
+        <field name="fcm_display_name">Frais à approuver</field>
+    </record>
+    <!-- Alert Date Reached -->
+    <record id="product_expiry.mail_activity_type_alert_date_reached" model="mail.activity.type">
+        <field name="fcm_color">#E91E63</field>
+        <field name="fcm_display_name">Dates d’alerte atteintes</field>
+    </record>
+    <!-- Old POS Sessions -->
+    <record id="point_of_sale.mail_activity_old_session" model="mail.activity.type">
+        <field name="fcm_color">#FFC107</field>
+        <field name="fcm_display_name">Sessions ouvertes &gt; 7 jours</field>
+    </record>
+    <!-- Reminder -->
+    <record id="note.mail_activity_data_reminder" model="mail.activity.type">
+        <field name="fcm_color">#FF9800</field>
+        <field name="fcm_display_name">Rappels</field>
+    </record>
+</odoo>
