@@ -18,6 +18,9 @@ from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT, format_datetime
 from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 from odoo.tools.misc import format_date
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 class PickingType(models.Model):
     _name = "stock.picking.type"
@@ -909,6 +912,7 @@ class Picking(models.Model):
         pickings_without_quantities = self.browse()
         pickings_without_lots = self.browse()
         products_without_lots = self.env['product.product']
+        _logger.info('Validating picking with id %s, name %s', self.id, self.name)
         for picking in self:
             if not picking.move_lines and not picking.move_line_ids:
                 pickings_without_moves |= picking
@@ -931,7 +935,8 @@ class Picking(models.Model):
                         if not line.lot_name and not line.lot_id:
                             pickings_without_lots |= picking
                             products_without_lots |= product
-
+        
+        _logger.info('Validation results for picking with id %s, name %s: pickings_without_moves=%s, pickings_without_quantities=%s, pickings_without_lots=%s, products_without_lots=%s', self.id, self.name, pickings_without_moves.ids, pickings_without_quantities.ids, pickings_without_lots.ids, products_without_lots.ids)
         if not self._should_show_transfers():
             if pickings_without_moves:
                 raise UserError(_('Please add some items to move.'))
@@ -958,6 +963,7 @@ class Picking(models.Model):
         if res is not True:
             return res
 
+        _logger.info('Pre-validation checks passed for picking with id %s, name %s. Proceeding to validation.', self.id, self.name)
         # Call `_action_done`.
         if self.env.context.get('picking_ids_not_to_backorder'):
             pickings_not_to_backorder = self.browse(self.env.context['picking_ids_not_to_backorder'])
@@ -967,6 +973,7 @@ class Picking(models.Model):
             pickings_to_backorder = self
         pickings_not_to_backorder.with_context(cancel_backorder=True)._action_done()
         pickings_to_backorder.with_context(cancel_backorder=False)._action_done()
+        _logger.info('Validation done for picking with id %s, name %s', self.id, self.name)
         return True
 
     def _pre_action_done_hook(self):

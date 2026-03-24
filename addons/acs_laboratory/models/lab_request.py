@@ -13,7 +13,8 @@ class PatientLabTestLine(models.Model):
         for line in self:
             line.amount_total = line.quantity * line.sale_price
 
-    test_id = fields.Many2one('acs.lab.test',string='Test', ondelete='cascade', required=True)
+    # test_id = fields.Many2one('acs.lab.test',string='Test', ondelete='cascade', required=True)
+    test_id = fields.Many2one('acs.lab.test',string='Test', ondelete='cascade')
     acs_tat = fields.Char(related='test_id.acs_tat', string='Turnaround Time', readonly=True)
     test_type = fields.Selection(related='test_id.test_type', string='Test Type', readonly=True)
     instruction = fields.Char(string='Special Instructions')
@@ -126,7 +127,6 @@ class LaboratoryRequest(models.Model):
                     'sale_price' : line.sale_price,
                 }))
             self.line_ids = test_line_ids
-
 
     @api.onchange('collection_center_id')
     def onchange_laboratory_id(self):

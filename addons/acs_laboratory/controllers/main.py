@@ -30,7 +30,7 @@ class ACSHms(http.Controller):
     def custom_login(self, token=None, redirect_url='/laboratory_sample_test', **kwargs):
         #Default to localhost if request.httprequest.host_url is not set
         url = request.httprequest.host_url.rstrip('/') if request.httprequest.host_url else 'http://localhost:8069'
- 
+        
         database = 'sandbox'
         print('Token:', token)
         try:
@@ -61,7 +61,7 @@ class ACSHms(http.Controller):
             else:
                 # return f"Invalid login: {login} or password: {password}"
                 return {'success': False, 'message': 'Login ou mot de passe invalide'}
-        
+
         except jwt.ExpiredSignatureError:
             # return "Token has expired"
             return {'success': False, 'message': 'Token expiré'}
@@ -78,26 +78,40 @@ class ACSHms(http.Controller):
         if not request.session.sid:
             _logger.info("---* No existing session. Creating new session.")
             request.session.touch()
-            
+
         user = request.env.user
         is_logged = not user._is_public()
         user_info = False
-        
+        departments_data = []
+
+        _logger.info(f"---* User ID: {user.id}, Is Logged In: {is_logged}, User Company ID: {user.company_id.id if user.company_id else 'None'}")
         if is_logged:
+            # Filtrer les départements par la société de l'utilisateur
+            user_company = user.company_id
+            
+            departments = user.department_ids.filtered(
+                lambda d: d.company_id == user_company
+            )
+            _logger.info("User departments: %s | Company: %s",
+                departments.mapped('name'),
+                user_company.name)
+            departments_data = [(dept.id, dept.name) for dept in departments]
+            
             image_url = f"/web/image/res.users/{user.id}/image_128"
             user_info = {
                 'name': user.name,
                 'email': user.email,
                 'id': user.id,
                 'image_url': image_url,
+                'user_company': user_company.id,
                 # 'image_url': user.image_128.decode('utf-8') if user.image_128 else None
-            }        
+            }
+
+        # # Récupérer tous les départements
+        # departments = request.env['hr.department'].sudo().search([])
+        # departments_data = [(dept.id, dept.name) for dept in departments]
         
-        # Récupérer tous les départements
-        departments = request.env['hr.department'].sudo().search([])
-        departments_data = [(dept.id, dept.name) for dept in departments]
-        
-        _logger.info(f"---* is_logged: {is_logged}, user_info: {user_info}, departments found: {len(departments_data)}")
+        _logger.info(f"---* is_logged: {is_logged}, departments found: {len(departments_data)}")
         return request.render(
         'acs_laboratory.laboratory_screen_sample',
         {
@@ -107,14 +121,25 @@ class ACSHms(http.Controller):
             'csrf_token': request.csrf_token(),   
         })
 
-    @http.route('/laboratory/collect_sample', type='json', auth='public', methods=['POST'])
+    @http.route('/laboratory/collect_sample', type='json', auth='user', methods=['POST'])
     def collect_sample(self):
         request_lab_data = request.jsonrequest.get('lab_request_ref')
-        laboratory_requests = request.env['acs.patient.laboratory.sample'].sudo().search([
-            ('request_id', '=', request_lab_data), 
-            ('state', '=', 'draft')
+        user_company = request.env.user.company_id.id
+        _logger.info(f"---* Received collect_sample request with lab_request_ref: {request_lab_data} for company_id: {user_company}")
+        
+        # On laisse Odoo gérer le filtre multi-company automatiquement
+        lab_request = request.env['acs.laboratory.request'].search([
+            ('name', '=', request_lab_data),
+            ('company_id', '=', user_company)
+        ], limit=1)
+
+        laboratory_requests = request.env['acs.patient.laboratory.sample'].search([
+            ('request_id', '=', lab_request.id), 
+            ('state', '=', 'draft'),
+            ('company_id', '=', user_company)
         ])
         
+        _logger.info(f"---* Collecting sample for request: {request_lab_data}, found {len(laboratory_requests)} samples")
         results = []
         for sample in laboratory_requests:
             sample_data = sample.read(['id', 'name', 'patient_id', 'request_id', 'sample_type_id'])[0]  
@@ -125,21 +150,6 @@ class ACSHms(http.Controller):
             formatted_consumables = []
             if sample_data['sample_type_id']:
                 sample_type = request.env['acs.laboratory.sample.type'].sudo().browse(sample_data['sample_type_id'][0])
-                #consumable_lines = sample_type.consumable_line_ids.read(['product_id', 'qty'])
-                formatted_type_consumables = []
-                # for line in consumable_lines:
-                #     formatted_type_consumables.append({
-                #         'product_id': line['product_id'][0],
-                #         'product_name': line['product_id'][1],
-                #         'qty': line['qty']
-                #     })
-                
-                
-                # formatted_consumables.append({
-                #     'product_name': sample_type.product_id.name,
-                #     'product_id': sample_type.product_id.id,
-                #     'qty': 1,
-                # })
                 
                 for product in sample_type.product_ids:
                     formatted_consumables.append({
@@ -150,12 +160,7 @@ class ACSHms(http.Controller):
                 
             else:
                 formatted_type_consumables = []  
-            
-            # for line in consumable_lines:
-            #     formatted_consumables.append({
-            #         'product_id': line['product_id'][1],
-            #         'qty': line['qty']
-            #     })
+
             formatted_sample = {
                 'id' : sample_data['id'],
                 'name': sample_data['name'],
@@ -175,7 +180,6 @@ class ACSHms(http.Controller):
         consumables = request.jsonrequest.get('consumables')
         ex_collect_checkbox = request.jsonrequest.get('ex_collect_checkbox')
 
-        # saved_collection_id = request.jsonrequest.get('saved_collection_id')
         department_id = request.jsonrequest.get('department_id')
         if not sample_id or not consumables:
             return {'status': 'error', 'message': 'Invalid request data'}
@@ -184,16 +188,7 @@ class ACSHms(http.Controller):
         company = sample.company_id.id
         if not sample.exists():
             return {'status': 'error', 'message': 'Sample not found'}
-
-        # if saved_collection_id:
-        #     _logger.info(f"--*Saved Collection ID: {saved_collection_id}")
-            
-        #     collection_center = request.env['acs.laboratory'].sudo().browse(saved_collection_id)
-        #     _logger.info(f"--*Collection Center Exists: {collection_center.exists()}")
-        #     if collection_center.exists():
-        #         sample.sudo().write({'collection_center_id': saved_collection_id})
-        #     else:
-        #         return {'status': 'error', 'message': 'Collection center not found'}
+        
         if department_id:
             _logger.info(f"--*Department ID: {department_id}")
             department = request.env['hr.department'].sudo().browse(department_id)
@@ -241,7 +236,6 @@ class ACSHms(http.Controller):
                             'lab_sample_id': sample_id 
                         }
                     updated_consumables.append((0, 0, new_line_data))
-                    
                     
         sample.sudo().write({'consumable_line_ids': updated_consumables,'external_collect' : ex_collect_checkbox})
         sample.sudo().action_collect()

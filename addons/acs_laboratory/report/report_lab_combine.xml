@@ -2,7 +2,11 @@
 <odoo>
 
     <template id="report_lab_result_combine_table">
-        <p style="padding: 5px; border: solid 1px; border-radius: 5px"><strong><span t-field="doc.cat_analyse"/></strong></p>
+        <p style="padding: 5px; border: solid 1px; border-radius: 5px">
+            <strong>
+                <span t-field="doc.cat_analyse" />
+            </strong>
+        </p>
         <table style="border:none;" class="table table-borderless">
             <thead style="border:solid 1px;">
                 <tr style="border:none;">
@@ -16,11 +20,12 @@
                 </tr>
             </thead>
             <tbody style="border:none;">
-<!--                <tr style="border:none;">-->
-<!--                    <td colspan="99">-->
-<!--                        <span t-field="doc.cat_analyse" style="font-family: sans-serif; font-weight:bold;font-size: 18px !important; color: black !important;"/>-->
-<!--                    </td>-->
-<!--                </tr>-->
+                <!--                <tr style="border:none;">-->
+                <!--                    <td colspan="99">-->
+                <!--                        <span t-field="doc.cat_analyse" style="font-family: sans-serif;
+                font-weight:bold;font-size: 18px !important; color: black !important;"/>-->
+                <!--                    </td>-->
+                <!--                </tr>-->
                 <tr style="border:none;">
                     <t t-if="doc.aspect_sang">
                         <td style="border:none;">
@@ -29,7 +34,7 @@
                         <td style="border:none;"></td>
                         <td style="border:none;"></td>
                         <td style="border:none;">
-                            <span t-field="doc.aspect_sang"/>
+                            <span t-field="doc.aspect_sang" />
                         </td>
                         <td style="border:none;"></td>
                         <td style="border:none;"></td>
@@ -44,7 +49,7 @@
                         <td style="border:none;"></td>
                         <td style="border:none;"></td>
                         <td style="border:none;">
-                            <span t-field="doc.aspect_urine"/>
+                            <span t-field="doc.aspect_urine" />
                         </td>
                         <td style="border:none;"></td>
                         <td style="border:none;"></td>
@@ -52,58 +57,77 @@
                     </t>
                 </tr>
                 <t t-foreach="doc.critearea_ids" t-as="line">
-                    <tr style="border:none;" t-att-class="'bg-200 font-weight-b o_line_section' if line.display_type == 'line_section' else ''">
+                    <tr style="border:none;"
+                        t-att-class="'bg-200 font-weight-b o_line_section' if line.display_type == 'line_section' else ''">
                         <t t-if="not line.display_type">
                             <t t-if="line.result">
-                                <td style="border:none;" t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
-                                    <span t-esc="line.name"/>
+                                <td style="border:none;"
+                                    t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
+                                    <span t-esc="line.name" />
                                 </td>
-                                <td style="border:none;"  t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
-                                    <span t-if="line.lab_uom_id" t-field="line.lab_uom_id"/>
+                                <td style="border:none;"
+                                    t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
+                                    <span t-if="line.lab_uom_id" t-field="line.lab_uom_id" />
                                 </td>
-                                <td style="border:none;" t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
-                                    <span t-if="line.lab_uom_id != 0" t-esc="line.pourcentage"/>
+                                <td style="border:none;"
+                                    t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
+                                    <span t-if="line.lab_uom_id != 0" t-esc="line.pourcentage" />
 
                                 </td>
-                                <td style="border:none;" t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
-                                    <span t-esc="line.result"/>
+                                <td style="border:none;"
+                                    t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
+                                    <span t-esc="line.result" />
                                 </td>
-                                <td style="border:none;" t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
-                                    <span t-esc="line.prev_result"/>
+                                <td style="border:none;"
+                                    t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
+                                    <span t-esc="line.prev_result" />
                                 </td>
-                                <td style="border:none;" t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
-                                    <span t-esc="line.date_anterieur"/>
+                                <td style="border:none;"
+                                    t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
+                                    <span t-esc="line.date_anterieur" />
                                 </td>
-                                <td style="border:none;" t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
-                                    <span t-esc="line.normal_range"/>
+                                <td style="border:none;"
+                                    t-attf-class="text-#{line.result_type} #{'o_font_bold' if line.result_type in ['high','low'] else ''}">
+                                    <span t-esc="line.normal_range" />
                                 </td>
                             </t>
 
                         </t>
                         <t t-if="line.display_type == 'line_section'">
                             <td style="border:none;" colspan="99">
-                                <span style="font-weight: bold !important;"><span t-field="line.name"/></span>
+                                <span style="font-weight: bold !important;">
+                                    <span t-field="line.name" />
+                                </span>
                             </td>
                         </t>
                     </tr>
                 </t>
             </tbody>
         </table>
-        <pre><span t-field="doc.antibiogramme"/></pre><br/>
+        <pre><span t-field="doc.antibiogramme"/></pre>
+        <br />
 
 
         <p class="mt64" t-if="doc.diagnosis">
             <strong style="text-decoration: underline;">Diagnostic:</strong>
-            <ul class="info_group"><span t-esc="doc.diagnosis"/> <br/>
+            <ul class="info_group">
+                <span t-esc="doc.diagnosis" />
+                <br />
             </ul>
         </p>
         <p class="mt64" t-if="doc.note">
             <strong style="text-decoration: underline;">Conclusion:</strong>
-            <ul class="info_group"><span t-esc="doc.note"/><br/></ul>
+            <ul class="info_group">
+                <span t-esc="doc.note" />
+                <br />
+            </ul>
         </p>
         <p class="mt64" t-if="doc.disclaimer">
             <strong style="text-decoration: underline;">Disclaimer:</strong>
-            <ul class="info_group"><span t-field="doc.disclaimer"/> <br/></ul>
+            <ul class="info_group">
+                <span t-field="doc.disclaimer" />
+                <br />
+            </ul>
         </p>
 
     </template>
@@ -140,11 +164,11 @@
         </div>
     </template> -->
 
-    
 
     <template id="interpretation_info">
         <t t-foreach="docs" t-as="doc">
-            <pre><span t-field="doc.antibiogramme"/></pre><br/>
+            <pre><span t-field="doc.antibiogramme"/></pre>
+            <br />
         </t>
 
 
@@ -152,7 +176,8 @@
             <strong style="text-decoration: underline;">Diagnostic:</strong>
             <ul class="info_group">
                 <t t-foreach="docs" t-as="doc">
-                    <span t-esc="doc.diagnosis"/> <br/>
+                    <span t-esc="doc.diagnosis" />
+                    <br />
                 </t>
             </ul>
         </p>
@@ -160,7 +185,8 @@
             <strong style="text-decoration: underline;">Conclusion:</strong>
             <ul class="info_group">
                 <t t-foreach="docs" t-as="doc">
-                    <span t-esc="doc.note"/><br/>
+                    <span t-esc="doc.note" />
+                    <br />
                 </t>
             </ul>
         </p>
@@ -168,7 +194,8 @@
             <strong style="text-decoration: underline;">Disclaimer:</strong>
             <ul class="info_group">
                 <t t-foreach="docs" t-as="doc">
-                    <span t-field="doc.disclaimer"/> <br/>
+                    <span t-field="doc.disclaimer" />
+                    <br />
                 </t>
             </ul>
         </p>
@@ -179,46 +206,52 @@
         <!--                    Validé par <span style="font-weight: bold !important;">Pr Luc RAKOTOVAO</span>-->
         <!--                </p>-->
         <p class="mt16 pull-right">
-            <span>Antananarivo, le </span><span t-field="doc.date_analysis"/><br/>
+            <span>Antananarivo, le </span>
+            <span t-field="doc.date_analysis" />
+            <br />
             <span class="font-weight-bold" style="font-weight: bold !important;">Signature</span>
-            <br/>
-            <!--                    <img src="/acs_laboratory/static/description/sign.png" style="width: 100px;height: 100px" class="float-right"/>-->
+            <br />
+            <!--                    <img src="/acs_laboratory/static/description/sign.png" style="width: 100px;height:
+            100px" class="float-right"/ -->
             <!--                    <t t-if="doc.group_medlab and doc.physician_id.signature">-->
-            <!--                        <span t-field="doc.physician_id.signature" t-options="{'widget': 'image', 'class': 'img-rounded', 'style':'max-height: 100px !important'}"/>-->
+            <!--                        <span t-field="doc.physician_id.signature" t-options="{'widget': 'image', 'class':
+            'img-rounded', 'style':'max-height: 100px !important'}"/ -->
             <!--                    </t>-->
-            <t t-set="foo" t-value="False"/>
+            <t t-set="foo" t-value="False" />
             <t t-foreach="doc.group_medlab" t-as="line">
                 <t t-if="foo == False">
-                    <span t-field="line.signature" t-options="{'widget': 'image', 'class': 'img-rounded', 'style':'max-height: 100px !important;max-width: 100px !important'}"/>
+                    <span t-field="line.signature"
+                        t-options="{'widget': 'image', 'class': 'img-rounded', 'style':'max-height: 100px !important;max-width: 100px !important'}" />
                 </t>
-                <t t-set="foo" t-value="True"/>
+                <t t-set="foo" t-value="True" />
             </t>
         </p>
     </template>
 
     <template id="report_acs_lab_test_combine_document">
         <t t-call="web.html_container">
-            
-                <t t-set="current_doc" t-value="docs[0]"/>
-                <!--t t-call="web.external_layout_lab_imm"-->
+
+            <t t-set="current_doc" t-value="docs[0]" />
+            <t t-call="web.external_layout_lab_imm">
+                <!-- <t t-call="web.external_layout"> -->
                 <t t-call="acs_laboratory.info_patient_external_layout">
                     <div class="page lab-combine">
                         <t t-foreach="docs" t-as="doc">
                             <t t-call="acs_laboratory.report_lab_result_combine_table">
-                                <t t-set="doc" t-value="doc"/>
+                                <t t-set="doc" t-value="doc" />
                             </t>
                         </t>
                         <t t-call="acs_laboratory.signature">
-                            <t t-set="doc" t-value="docs[0]"/>
+                            <t t-set="doc" t-value="docs[0]" />
                         </t>
                     </div>
                     <style>
                         .page.lab-combine {
-                            padding-top: 70px !important;
+                        padding-top: 70px !important;
                         }
                     </style>
                 </t>
-            
+            </t>
         </t>
     </template>
 
@@ -242,13 +275,14 @@
         </t>
     </template> -->
 
-<!--    <template id="report_acs_lab_combine_imm">-->
-<!--        <t t-call="web.html_container">-->
-<!--            <t t-foreach="docs" t-as="doc">-->
-<!--                <t t-call="acs_laboratory.report_acs_lab_test_combine_document" t-lang="doc[0].patient_id.partner_id.lang"/>-->
-<!--            </t>-->
-<!--        </t>-->
-<!--    </template>-->
+    <!--    <template id="report_acs_lab_combine_imm">-->
+    <!--        <t t-call="web.html_container">-->
+    <!--            <t t-foreach="docs" t-as="doc">-->
+    <!--                <t t-call="acs_laboratory.report_acs_lab_test_combine_document"
+    t-lang="doc[0].patient_id.partner_id.lang"/>-->
+    <!--            </t>-->
+    <!--        </t>-->
+    <!--    </template>-->
 
     <record id="action_report_acs_lab_combine_imm" model="ir.actions.report">
         <field name="name">Rapprot de laboratoire Analyses combiné</field>
@@ -257,7 +291,7 @@
         <field name="report_name">acs_laboratory.report_acs_lab_test_combine_document</field>
         <field name="report_file">acs_laboratory.report_acs_lab_test_combine_document</field>
         <field name="print_report_name">(object.name or 'LabReport').replace('/','_') + '_LabReport'</field>
-        <field name="binding_model_id" ref="model_patient_laboratory_test"/>
+        <field name="binding_model_id" ref="model_patient_laboratory_test" />
         <field name="binding_type">report</field>
     </record>
 
