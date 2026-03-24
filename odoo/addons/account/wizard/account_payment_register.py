@@ -22,9 +22,24 @@ class AccountPaymentRegister(models.TransientModel):
     currency_id = fields.Many2one('res.currency', string='Currency', store=True, readonly=False,
         compute='_compute_currency_id',
         help="The payment's currency.")
-    journal_id = fields.Many2one('account.journal', store=True, readonly=False,
-        compute='_compute_journal_id',
-        domain="[('company_id', '=', company_id), ('type', 'in', ('bank', 'cash'))]")
+    journal_type = fields.Selection([
+        # ('sale', 'Sales'),
+        # ('purchase', 'Purchase'),
+        ('cash', 'Cash'),
+        ('bank', 'Bank'),
+        # ('general', 'Miscellaneous'),
+    ], string="Journal Type", required=True)
+
+    journal_id = fields.Many2one(
+        'account.journal',
+        string="Journal",
+        domain="[('company_id', '=', company_id), ('type', '=', journal_type), '|', ('is_main_cash', '=', None), ('is_main_cash', '=', False)]",
+        required=True,
+        store=True
+    )
+    # journal_id = fields.Many2one('account.journal', store=True, readonly=False,
+    #     compute='_compute_journal_id',
+    #     domain="[('company_id', '=', company_id), ('type', 'in', ('bank', 'cash'))]")
     available_partner_bank_ids = fields.Many2many(
         comodel_name='res.partner.bank',
         compute='_compute_available_partner_bank_ids',
@@ -79,7 +94,8 @@ class AccountPaymentRegister(models.TransientModel):
 
     # == Payment methods fields ==
     payment_method_id = fields.Many2one('account.payment.method', string='Payment Method',
-        readonly=False, store=True,
+        readonly=False,
+        store=True,
         compute='_compute_payment_method_id',
         domain="[('id', 'in', available_payment_method_ids)]",
         help="Manual: Get paid by cash, check or any other method outside of Odoo.\n"\
@@ -357,7 +373,6 @@ class AccountPaymentRegister(models.TransientModel):
                 wizard.available_payment_method_ids = wizard.journal_id.inbound_payment_method_ids
             else:
                 wizard.available_payment_method_ids = wizard.journal_id.outbound_payment_method_ids
-
             wizard.hide_payment_method = len(wizard.available_payment_method_ids) == 1 and wizard.available_payment_method_ids.code == 'manual'
 
     @api.depends('payment_type',
@@ -365,6 +380,7 @@ class AccountPaymentRegister(models.TransientModel):
                  'journal_id.outbound_payment_method_ids')
     def _compute_payment_method_id(self):
         for wizard in self:
+            print(f"Available methods: {wizard.available_payment_method_ids}")
             if wizard.payment_type == 'inbound':
                 available_payment_methods = wizard.journal_id.inbound_payment_method_ids
             else:

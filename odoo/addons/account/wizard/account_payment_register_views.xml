@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-
         <record id="view_account_payment_register_form" model="ir.ui.view">
             <field name="name">account.payment.register.form</field>
             <field name="model">account.payment.register</field>
@@ -19,20 +18,21 @@
                     <field name="company_id" invisible="1" force_save="1"/>
                     <field name="partner_id" invisible="1" force_save="1"/>
                     <field name="country_code" invisible="1" force_save="1"/>
-
                     <field name="show_partner_bank_account" invisible="1"/>
                     <field name="require_partner_bank_account" invisible="1"/>
                     <field name="hide_payment_method" invisible="1"/>
                     <field name="available_payment_method_ids" invisible="1"/>
                     <field name="available_partner_bank_ids" invisible="1"/>
                     <field name="company_currency_id" invisible="1"/>
-
                     <group>
                         <group name="group1">
+                            <field name="journal_type" widget="selection" required="1"/>
                             <field name="journal_id" widget="selection" required="1"/>
                             <field name="payment_method_id" widget="radio"
                                    required="1"
-                                   attrs="{'invisible': [('hide_payment_method', '=', True)]}"/>
+                                   attrs="{'invisible': [(1, '=', 1)]}"
+                                   />
+                                   <!-- attrs="{'invisible': [('hide_payment_method', '=', True)]}" -->
                             <field name="partner_bank_id"
                                    attrs="{'invisible': ['|', ('show_partner_bank_account', '=', False), '|', ('can_edit_wizard', '=', False), '&amp;', ('can_group_payments', '=', True), ('group_payment', '=', False)],
                                            'required': [('require_partner_bank_account', '=', True), ('can_edit_wizard', '=', True), '|', ('can_group_payments', '=', False), ('group_payment', '=', False)]}"/>
@@ -79,6 +79,5 @@
                 </form>
             </field>
         </record>
-
     </data>
 </odoo>
