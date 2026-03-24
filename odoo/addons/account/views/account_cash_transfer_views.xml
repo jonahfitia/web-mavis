@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Tree View -->
+        <record id="view_account_cash_transfer_tree" model="ir.ui.view">
+            <field name="name">account.cash.transfer.tree</field>
+            <field name="model">account.cash.transfer</field>
+            <field name="arch" type="xml">
+                <tree string="Cash Transfers" decoration-danger="state == 'posted'">
+                    <field name="name"/>
+                    <field name="source_date_ending"/>
+                    <field name="source_cashier"/>
+                    <field name="source_total_amount" widget="monetary"/>
+                    <field name="state"/>
+                </tree>
+            </field>
+        </record>
+        <!-- Form View -->
+        <record id="view_account_cash_transfer_form" model="ir.ui.view">
+            <field name="name">account.cash.transfer.form</field>
+            <field name="model">account.cash.transfer</field>
+            <field name="arch" type="xml">
+                <form string="Cash Transfer">
+                    <header>
+                        <button string="Print Source Balance"  class="oe_highlight"
+                        attrs="{'invisible': [('cashbox_start_id' , '=' , False)] }"
+                            name="print_start_report_cashbox" type="object"
+                    />
+                        <button string="Print Destination Balance"  class="oe_highlight"
+                        attrs="{'invisible': [('cashbox_end_id' , '=' , False)] }"
+                            name="print_end_report_cashbox" type="object"
+                    />
+                        <button name="action_validate" type="object" string="Validate" class="btn-primary"
+                        attrs="{'invisible': [('state', '=', 'done')]}"/>
+                        <button name="action_reset_draft" type="object" string="Reset to Draft"
+                        attrs="{'invisible': [('state', '=', 'posted')]}"/>
+                        <field name="state" widget="statusbar" statusbar_visible="posted,done"/>
+                    </header>
+                    <div attrs="{'invisible': [('show_mismatch_alert', '=', False)]}"
+                    class="alert alert-danger o_form_alert">
+                        <span>
+            ⚠️ Les montants source et destination sont différents!
+                            <br/>
+            Source:
+                            <field name="source_total_amount" readonly="1"/> |
+            Destination:
+                            <field name="destination_total_amount" readonly="1"/>
+                        </span>
+                    </div>
+                    <sheet>
+                        <group col="2">
+                            <!-- Column 1: Source Cashier -->
+                            <group string="Source">
+                                <field name="source_cashier" readonly="1" />
+                                <field name="source_cash_register"
+                            domain="[('date_done', '=', False), ('user_id', '=', uid)]"/>
+                                <field name="source_date_ending" />
+                                <field name="source_total_amount" />
+                            </group>
+                            <!-- Column 2: Destination Cashier -->
+                            <group string="Destination">
+                                <group>
+                                    <field name="cashbox_start_id" invisible="1"/>
+                                    <field name="show_mismatch_alert" invisible="1"/>
+                                    <field name="cashbox_start_id" invisible="1"/>
+                                    <field name="cashbox_end_id" invisible="1"/>
+                                    <field name="destination_cash_register" />
+                                    <!-- <field name="date_reception" string="Reception Date" /> -->
+                                </group>
+                                <group>
+                                    <label for="destination_total_amount"/>
+                                    <div>
+                                        <field name="destination_total_amount" class="oe_inline"/>
+                                        <button name="open_cashbox_id" string="&#8594; Count" type="object" class="oe_edit_only oe_link oe_inline" context="{'balance': 'start'}"/>
+                                    </div>
+                                </group>
+                            </group>
+                        </group>
+                    </sheet>
+                    <!-- <div class="o_attachment_preview"/> -->
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids"/>
+                        <field name="message_ids"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+        <record id="rule_cash_transfer_admin" model="ir.rule">
+            <field name="name">Cash Transfer: admin access</field>
+            <field name="model_id" ref="model_account_cash_transfer"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <!-- <field name="groups" eval="[(4, ref('base.group_system'))]"/> -->
+        </record>
+        <record id="action_cash_transfer" model="ir.actions.act_window">
+            <field name="name">Cash Transfer</field>
+            <field name="res_model">account.cash.transfer</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[]</field>
+            <field name="context">{'create': False, 'order': 'source_date_ending desc'}</field>
+        </record>
+    </data>
+</odoo>
