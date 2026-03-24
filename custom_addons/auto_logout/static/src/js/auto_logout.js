@@ -1,173 +1,280 @@
 odoo.define('auto_logout.AutoLogout', function (require) {
     "use strict";
-    console.log('auto_logout: define loaded');
 
     var WebClient = require('web.WebClient');
     var rpc = require('web.rpc');
     var Dialog = require('web.Dialog');
     var core = require('web.core');
-    var _t = core._t;
     var session = require('web.session');
+    var _t = core._t;
 
     WebClient.include({
+
         init: function () {
-            console.log('auto_logout: WebClient.init called');
+            console.debug("-----Auto logout: init");
             this._super.apply(this, arguments);
             this._autoLogoutSetup();
         },
 
         start: function () {
-            console.log('auto_logout: WebClient.start called');
+            console.log("-----Auto logout: start");
             var self = this;
-            console.log('auto_logout: WebClient.start called 2.2');
             return this._super.apply(this, arguments).then(function () {
                 self._autoLogoutSetup();
             });
         },
 
+        // ======================================================
+        // MAIN SETUP
+        // ======================================================
         _autoLogoutSetup: function () {
-            console.log('auto_logout: _autoLogoutSetup');
+            console.debug("-----Auto logout: setup");
             var self = this;
-            // éviter l'initialisation multiple (init + start peuvent appeler)
+
             if (this._autoLogoutSetupDone) {
-                console.log('auto_logout: already initialized, skipping');
                 return;
             }
             this._autoLogoutSetupDone = true;
-            var timeoutMinutes = 30; // valeur par défaut
 
-            // lire le paramètre système web.auto_logout_minutes
+            // -----------------------------
+            // TAB MANAGEMENT SYSTEM
+            // -----------------------------
+            this._setupTabDetection();
+
+            // -----------------------------
+            // READ TIMEOUT PARAM
+            // -----------------------------
+            var timeoutMinutes = 30; // default
+
             rpc.query({
                 model: 'auto_logout.config',
                 method: 'get_auto_logout_minutes',
                 args: [],
             }).then(function (value) {
-                console.log('auto_logout: got param value:', value);
+
                 if (value) {
                     var parsed = parseInt(value, 10);
                     if (!isNaN(parsed) && parsed > 0) {
                         timeoutMinutes = parsed;
-                        console.log('auto_logout: parsed value:', timeoutMinutes);
                     }
                 }
-                console.log('auto_logout: timeoutMinutes:', timeoutMinutes);
+
                 if (!timeoutMinutes || timeoutMinutes <= 0) {
-                    console.log('auto_logout: timeout disabled or invalid');
                     return;
                 }
-                // console.log('auto_logout: calling _startIdleTimer with', timeoutMinutes);
-                // self._startIdleTimer(timeoutMinutes);
-                var session = require('web.session');
+
+                // Exclude admin
                 session.user_has_group('base.group_system').then(function (isAdmin) {
                     if (isAdmin) {
-                        console.log('auto_logout: admin group → disabled');
                         return;
                     }
                     self._startIdleTimer(timeoutMinutes);
                 });
 
-            }).catch(function (error) {
-                console.log('auto_logout: error reading param', error);
+            }).catch(function () {
+                console.warn("Auto logout: unable to read parameter.");
             });
         },
 
+        // ======================================================
+        // TAB DETECTION SYSTEM
+        // ======================================================
+        _setupTabDetection: function () {
+            console.log("-----Auto logout: setup tab detection");
+
+            var STORAGE_KEY = "odoo_open_tabs";
+            var TIMEOUT = 15000; // 15 sec
+
+            // 🔴 TOUJOURS générer un nouvel ID (même si duplication)
+            var tabId = Date.now() + "_" + Math.random();
+            sessionStorage.setItem('odoo_tab_id', tabId);
+
+            function registerTab() {
+                var tabs = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+                tabs[tabId] = Date.now();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+            }
+
+            function cleanDeadTabs() {
+                var tabs = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+                var now = Date.now();
+
+                Object.keys(tabs).forEach(function (id) {
+                    if (now - tabs[id] > TIMEOUT) {
+                        delete tabs[id];
+                    }
+                });
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+                return tabs;
+            }
+
+            // Register immediately
+            registerTab();
+
+            // Heartbeat
+            setInterval(function () {
+                registerTab();
+            }, 5000);
+
+            // Check multi-tabs
+            setTimeout(function () {
+                var tabs = cleanDeadTabs();
+                var count = Object.keys(tabs).length;
+                console.log("Active tabs:", count);
+
+                if (count > 1) {
+                    console.warn("⚠ Odoo opened in multiple tabs");
+                }
+            }, 1000);
+
+            // Clean on close
+            window.addEventListener('beforeunload', function () {
+                var tabs = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+                delete tabs[tabId];
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+            });
+        },
+
+
+        // ======================================================
+        // IDLE TIMER SYSTEM
+        // ======================================================
         _startIdleTimer: function (minutes) {
-            console.log('auto_logout: start idle timer', minutes, 'minutes');
+
             var self = this;
             var idleMs = minutes * 60 * 1000;
-            var warnBeforeMs = 30 * 1000; // avertir 30 secondes avant
-            var warnTimer = null;
-            var logoutTimer = null;
+            var warnBeforeMs = 30000; // 30 sec avant logout
+            var CHECK_INTERVAL = 5000; // vérifie toutes les 5 sec
+
             var warnDialog = null;
             var dialogActive = false;
 
-            function clearAll() {
-                if (warnTimer) { clearTimeout(warnTimer); warnTimer = null; }
-                if (logoutTimer) { clearTimeout(logoutTimer); logoutTimer = null; }
-                if (warnDialog) { try { warnDialog.close(); } catch (e) { } warnDialog = null; }
-                dialogActive = false;
+            var ACTIVITY_KEY = "odoo_last_activity";
+
+            // -----------------------------
+            // Marquer activité globale
+            // -----------------------------
+            function markActivity() {
+                localStorage.setItem(ACTIVITY_KEY, Date.now());
             }
 
-            function doLogout() {
-                console.log('auto_logout: doLogout called');
-                clearAll();
-                // Arrêter la détection d'activité
-                ['mousemove', 'keydown', 'click', 'touchstart'].forEach(function (ev) {
-                    document.removeEventListener(ev, resetTimer);
-                });
-                // Faire la déconnexion via la session
-                session.session_logout().then(function () {
-                    window.location.href = '/web/login';
-                }).catch(function (error) {
-                    console.log('auto_logout: logout error', error);
-                    window.location.href = '/web/login';
-                });
-            }
+            // -----------------------------
+            // Warning dialog
+            // -----------------------------
+            function showWarning(remainingMs) {
 
-            function showWarning() {
-                console.log('auto_logout: showWarning called');
                 if (warnDialog) {
                     try { warnDialog.close(); } catch (e) { }
                 }
+
                 dialogActive = true;
 
-                var safeClose = function () {
-                    console.log('auto_logout: dialog closed');
-                    if (warnDialog) {
-                        try { warnDialog.close(); } catch (e) { console.log('auto_logout: close error', e); }
-                        warnDialog = null;
-                    }
-                    dialogActive = false;
-                    resetTimer();
-                };
-
                 warnDialog = new Dialog(self, {
-                    title: _t("Déconnexion pour inactivité"),
+                    title: "Déconnexion pour inactivité",
                     size: 'small',
-                    $content: $('<div/>').text(_t('Vous serez déconnecté dans 30 secondes en raison de l\'inactivité. Cliquez sur "Rester connecté" pour annuler.')),
-                    buttons: [
-                        {
-                            text: _t('Rester connecté'),
-                            classes: 'btn-primary',
-                            click: function () {
-                                console.log('auto_logout: button clicked');
-                                safeClose();
-                            },
+                    $content: $('<div/>').text(
+                        "Vous serez déconnecté dans " + Math.ceil(remainingMs / 1000) +
+                        " secondes en raison de l'inactivité."
+                    ),
+                    buttons: [{
+                        text: "Rester connecté",
+                        classes: 'btn-primary',
+                        click: function () {
+                            dialogActive = false;
+                            markActivity();
+                            try { warnDialog.close(); } catch (e) { }
                         },
-                    ],
+                    }],
                 });
 
                 warnDialog.open();
-
-                // Attendre que le modal soit affiché
-                setTimeout(function () {
-                    if (warnDialog && warnDialog.$modal) {
-                        warnDialog.$modal.find('.modal-header .btn-close, .modal-header .close').on('click', function (e) {
-                            e.preventDefault();
-                            safeClose();
-                        });
-                    }
-                }, 100);
             }
 
-            function resetTimer() {
-                // Ne pas réinitialiser si le dialog d'avertissement est affiché
-                if (dialogActive) {
+            // -----------------------------
+            // Logout global
+            // -----------------------------
+            function doLogout() {
+
+                // Vérifier qu'il n'y a vraiment aucune activité récente
+                var last = parseInt(localStorage.getItem(ACTIVITY_KEY) || 0);
+                var now = Date.now();
+
+                if (now - last < idleMs) {
+                    return; // activité ailleurs
+                }
+
+                session.session_logout().then(function () {
+                    window.location.href = '/web/login';
+                }).catch(function () {
+                    window.location.href = '/web/login';
+                });
+            }
+
+            // -----------------------------
+            // Vérification périodique
+            // -----------------------------
+            function checkGlobalIdle() {
+
+                var last = parseInt(localStorage.getItem(ACTIVITY_KEY) || 0);
+                var now = Date.now();
+                var diff = now - last;
+
+                if (!last) {
+                    markActivity();
                     return;
                 }
-                clearAll();
-                var warnAt = Math.max(idleMs - warnBeforeMs, 0);
-                warnTimer = setTimeout(showWarning, warnAt);
-                logoutTimer = setTimeout(doLogout, idleMs);
+
+                // Si on approche du timeout
+                if (diff >= (idleMs - warnBeforeMs) && diff < idleMs) {
+
+                    if (!dialogActive) {
+                        showWarning(idleMs - diff);
+                    }
+
+                } else {
+
+                    // activité détectée ailleurs → fermer dialog
+                    if (warnDialog) {
+                        try { warnDialog.close(); } catch (e) { }
+                        warnDialog = null;
+                        dialogActive = false;
+                    }
+                }
+
+                if (diff >= idleMs) {
+                    doLogout();
+                }
             }
 
-            // événements d'activité pour réinitialiser le timer
-            ['mousemove', 'keydown', 'click', 'touchstart'].forEach(function (ev) {
-                document.addEventListener(ev, resetTimer, { passive: true });
+            // -----------------------------
+            // Synchronisation entre onglets
+            // -----------------------------
+            window.addEventListener("storage", function (event) {
+                if (event.key === ACTIVITY_KEY) {
+                    // activité dans un autre onglet
+                    if (warnDialog) {
+                        try { warnDialog.close(); } catch (e) { }
+                        warnDialog = null;
+                        dialogActive = false;
+                    }
+                }
             });
 
-            // démarrer
-            resetTimer();
+            // -----------------------------
+            // Événements utilisateur
+            // -----------------------------
+            ['mousemove', 'keydown', 'click', 'touchstart']
+                .forEach(function (ev) {
+                    document.addEventListener(ev, markActivity, { passive: true });
+                });
+
+            // Initialiser activité
+            markActivity();
+
+            // Lancer vérification périodique
+            setInterval(checkGlobalIdle, CHECK_INTERVAL);
         },
+
     });
 });
