@@ -15,6 +15,7 @@ from odoo.exceptions import AccessError
 from odoo.http import request
 from odoo.tools import consteq
 from datetime import datetime
+from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 class MailController(http.Controller):
@@ -361,7 +362,7 @@ class MailController(http.Controller):
                 return self._get_activities(partner, limit, offset)
             elif filter_type == 'notifications':
                 return self._get_system_notifications(partner, limit, offset)
-            else:  # 'all' ou par défaut
+            else:
                 return self._get_all_combined(partner, limit, offset)
                 
         except Exception as e:
@@ -456,158 +457,106 @@ class MailController(http.Controller):
         formatted_channels.sort(key=lambda x: x['time'], reverse=True)
         return formatted_channels[offset:offset + limit]
 
+
     # -------------------------------------------------------------------
     # 2. Fonction pour les ACTIVITÉS seulement
     # -------------------------------------------------------------------
     def _get_activities(self, partner, limit, offset):
-        """Retourne uniquement la dernière activité + nombre d'activités non lues"""
-        _logger.debug(f"***************Fetching last activity for partner {partner.id}")
-        
-        # 1. Récupérer la DERNIÈRE activité (la plus récente)
-        last_activity = request.env['mail.activity'].sudo().search([
-            ('user_id', '=', request.env.user.id),  # Activités de l'utilisateur
-            ('date_deadline', '!=', False)          # Avec date d'échéance
-        ], order='create_date desc', limit=1)     # ← DESC pour avoir la plus récente
-        
-        if not last_activity:
-            return []
-        
-        # 2. Compter les activités NON LUS/NON TERMINÉES
-        # Selon votre logique métier, vous pouvez choisir :
-        
-        # Option A: Toutes les activités actives
-        # activities = request.env['mail.activity'].sudo().search([
-        #     ('user_id', '=', request.env.user.id),
-        #     ('date_deadline', '!=', False),
-        #     ('active', '=', True),
-        # ])
+        _logger.debug(f"Fetching activities for partner {partner.id}")
 
-        # unread_count = len(activities.filtered(lambda a: a.state != 'done'))
-        
-        activities = request.env['mail.activity'].sudo().search([
+        Activity = request.env['mail.activity'].sudo()
+
+        # 1. Récupérer toutes les activités de l'utilisateur
+        activities = Activity.search([
             ('user_id', '=', request.env.user.id),
-            ('date_deadline', '!=', False),
-        ])
+            ('date_deadline', '!=', False)
+        ], order='create_date desc', limit=limit, offset=offset)
 
-        # Filtrage côté Python (state est OK ici)
-        unread_activities = activities.filtered(
-            lambda a: a.state not in ('done', 'cancelled')
-        )
+        if not activities:
+            return []
 
-        unread_count = len(unread_activities)
-
-        # Option B: Basé sur votre propre logique de "non lu"
-        # unread_count = request.env['mail.activity'].sudo().search_count([
+        # 2. Compter les activités non terminées
+        # unread_count = Activity.search_count([
         #     ('user_id', '=', request.env.user.id),
         #     ('date_deadline', '!=', False),
-        #     ('is_read', '=', False)  # Si vous avez un champ is_read
+        #     ('state', '!=', 'done'),
+        #     ('state', '!=', 'cancelled')
         # ])
-        
-        # 3. Déterminer le nom d'affichage selon le type
-        info = MailActivityHelper.get_activity_type_info(last_activity.activity_type_id.name)
-            # Exemple 
-        icon = info['icon']
-        color = info['color']
-        fcm_display_name = info['display_name']
-        
-        # 4. Format du texte
-        # icon = self._get_activity_icon(last_activity.activity_type_id.name)
-        activity_type = last_activity.activity_type_id.name or "Activité"
-        res_name = last_activity.res_name or ""
-        
-        activity_text = f"{activity_type} {res_name} • Échéance: {last_activity.date_deadline}"
-        
-        # 5. Construire l'URL vers l'enregistrement
-        activity_url = ""
-        if last_activity.res_model and last_activity.res_id:
-            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url')
-            activity_url = f"{base_url}/web#id={last_activity.res_id}&model={last_activity.res_model}&view_type=form"
-        
-        # 6. Retourner UNIQUEMENT la dernière activité
-        return [{
-            'uuid': 'activity_all',  # UUID fixe pour ouvrir TOUTES les activités
-            'name': 'Activités',     # Nom fixe pour le canal
-            'conversation_type': 'activity',
-            'text': activity_text,   # Texte de la dernière activité
-            'time': last_activity.create_date if last_activity.create_date else '2000-01-01T00:00:00',
-            'channelId': None,
-            'email': '',
-            'unreadCount': unread_count,  # Nombre TOTAL d'activités non lues
-            'target': {
-                'model': 'mail.activity',
-                'type': last_activity.activity_type_id.name,  # Type de la dernière activité
-                'record_name': last_activity.res_name,
-                'deadline': str(last_activity.date_deadline),
-                'res_id': last_activity.res_id,
-                'res_model': last_activity.res_model,
-                'url': activity_url  # URL vers l'enregistrement
-            },
-            'metadata': {
-                'total_count': unread_count,  # Nombre total d'activités
-                'has_unread': unread_count > 0,
-                # 'icon': self._get_activity_icon(last_activity.activity_type_id.name),  # Icône selon type
-                # 'color': self._get_activity_color(last_activity.activity_type_id.name),  # Couleur selon type
-                'icon': icon,  # Icône selon type
-                'color': color,
-                'last_activity_id': last_activity.id
-            },
-            'filter_type': 'activity'
-        }]
-    
 
+        result = []
 
+        # base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        base_url = request.httprequest.host_url or request.env['ir.config_parameter'].sudo().get_param('web.base.url')
 
+        for activity in activities:
+            info = MailActivityHelper.get_activity_type_info(activity.activity_type_id.name)
 
+            icon = info['icon']
+            color = info['color']
 
+            activity_text = f"{activity.activity_type_id.name or 'Activité'} {activity.res_name or ''} • Échéance: {activity.date_deadline}"
 
+            activity_url = ""
+            if activity.res_model and activity.res_id:
+                activity_url = f"{base_url}/web#id={activity.res_id}&model={activity.res_model}&view_type=form"
 
+            result.append({
+                'uuid': f'activity_{activity.id}',
+                'name': activity.res_name or 'Activité',
+                'conversation_type': 'activity',
+                'text': activity_text,
+                'time': activity.create_date,
+                'channelId': None,
+                'email': '',
+                'unreadCount': '',
 
+                'target': {
+                    'model': activity.res_model,
+                    'type': activity.activity_type_id.name,
+                    'record_name': activity.res_name,
+                    'deadline': str(activity.date_deadline),
+                    'res_id': activity.res_id,
+                    'res_model': activity.res_model,
+                    'url': activity_url
+                },
 
+                'metadata': {
+                    'icon': icon,
+                    'color': color,
+                    'activity_id': activity.id
+                },
 
+                'filter_type': 'activity'
+            })
+
+        return result
 
     # -------------------------------------------------------------------
     # 3. Fonction pour les NOTIFICATIONS SYSTÈME seulement
     # -------------------------------------------------------------------
     def _get_system_notifications(self, partner, limit, offset):
-        _logger.debug(f"***************Fetching system notifications for partner {partner.id} with limit={limit}, offset={offset}")
-        """Retourne seulement les notifications système"""
+        _logger.debug(f"Fetching system notifications for partner {partner.id}")
+
         system_user_id = request.env.ref('base.user_root').id
-        
-        # Récupérer les notifications système
-        notifications = request.env['mail.message'].sudo().search([
+        Message = request.env['mail.message'].sudo()
+
+        # 1. Récupérer les messages système
+        notifications = Message.search([
             ('message_type', 'in', ['user_notification', 'notification']),
             ('author_id', '=', system_user_id)
-        ], order='date desc', limit=limit + offset + 20)
-        
-        _logger.debug(f"System notifications fetched: {len(notifications)} for partner {partner.id}")
-        
-        # Notifications non lues
+        ], order='date desc', limit=limit, offset=offset)
+
+        if not notifications:
+            return []
+
+        # 2. Messages non lus
         unread_notifications = request.env['mail.notification'].sudo().search([
             ('res_partner_id', '=', partner.id),
             ('is_read', '=', False)
         ])
         unread_map = {n.mail_message_id.id: True for n in unread_notifications}
-        
-        # Grouper par modèle
-        grouped_by_model = {}
-        for notif in notifications:
-            model_key = notif.model or 'other'
-            
-            if model_key not in grouped_by_model:
-                grouped_by_model[model_key] = {
-                    'messages': [],
-                    'unreadCount': 0,
-                    'lastMessageTime': notif.date
-                }
-            
-            grouped_by_model[model_key]['messages'].append(notif)
-            if unread_map.get(notif.id):
-                grouped_by_model[model_key]['unreadCount'] += 1
-            grouped_by_model[model_key]['lastMessageTime'] = max(
-                grouped_by_model[model_key]['lastMessageTime'], notif.date
-            )
-        
-        # Titres des modèles
+
+        # 3. Titres modèles
         model_titles = {
             'sale.order': 'Bon de commande',
             'account.move': 'Facture',
@@ -617,37 +566,51 @@ class MailController(http.Controller):
             'stock.picking': 'Transfert de stock',
             'mail.activity': 'Activité',
         }
-        
-        # Formater les groupes
-        formatted_notifications = []
-        for model, group in grouped_by_model.items():
-            if all(not (m.body or '').strip() for m in group['messages']):
+
+        base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url')
+
+        result = []
+
+        for notif in notifications:
+            model = notif.model or 'other'
+            res_id = notif.res_id or 0
+
+            body = (notif.body or '').strip()
+
+            if not body:
                 continue
-            
-            last_message = group['messages'][0]
-            last_body = (last_message.body or '').strip()
-            res_id = last_message.res_id if last_message and last_message.res_id else 0
-            
-            formatted_notifications.append({
-                'uuid': f'group_{model}',
+
+            # URL cible
+            target_url = ""
+            if model and res_id:
+                target_url = f"{base_url}/web#id={res_id}&model={model}&view_type=form"
+
+            result.append({
+                'uuid': f'notif_{notif.id}',
                 'name': model_titles.get(model, model),
                 'conversation_type': 'notification',
-                'text': f"{last_body[:80]}...",
-                'time': group['lastMessageTime'] or '2000-01-01T00:00:00',
+                'text': body[:100],
+                'time': notif.date,
                 'channelId': None,
                 'email': '',
-                'unreadCount': group['unreadCount'],
+                'unreadCount': 1 if unread_map.get(notif.id) else 0,
+
                 'target': {
                     'model': model,
-                    'res_id': res_id
+                    'res_id': res_id,
+                    'url': target_url
                 },
+
+                'metadata': {
+                    'model': model,
+                    'message_id': notif.id
+                },
+
                 'filter_type': 'notification'
             })
-        
-        # Trier et paginer
-        formatted_notifications.sort(key=lambda x: x['time'], reverse=True)
-        return formatted_notifications[offset:offset + limit]
 
+        return result
+    
     # -------------------------------------------------------------------
     # 4. Fonction pour TOUT combiné (comportement original)
     # -------------------------------------------------------------------
@@ -694,7 +657,6 @@ class MailController(http.Controller):
             return datetime.min
         
         try:
-            # ★★★ CORRECTION : Vérifier d'abord si c'est déjà un datetime ★★★
             if isinstance(time_value, datetime):
                 return time_value
             
@@ -724,17 +686,6 @@ class MailController(http.Controller):
         except Exception as e:
             _logger.warning(f"Erreur de conversion time: {time_value} (type: {type(time_value)}) - {str(e)}")
             return datetime.min
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     @http.route('/mail/get_suggested_recipients', type='json', auth='user')
     def message_get_suggested_recipients(self, model, res_ids):
