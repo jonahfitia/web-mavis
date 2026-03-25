@@ -21,7 +21,7 @@ class AccountInvoiceSend(models.TransientModel):
     template_id = fields.Many2one(
         'mail.template', 'Use template', index=True,
         domain="[('model', '=', 'account.move')]"
-        )
+    )
 
     @api.model
     def default_get(self, fields):

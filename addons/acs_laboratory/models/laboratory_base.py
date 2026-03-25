@@ -568,7 +568,7 @@ class PatientLabSample(models.Model):
             self.patient_id = self.request_id.patient_id.id
 
     def action_collect(self):
-        _logger.info("Starting action_collect ...%s" , self.department_id.id)
+        _logger.info("Starting action_collect . . . %s" , self.department_id.id)
         self.consume_lab_material()
         self.state = 'collect'
 
@@ -628,57 +628,92 @@ class PatientLabSample(models.Model):
 
         # if not self.department_id.source_location_id:
         #     raise UserError(_("Veuillez définir l'emplacement d'origine pour le département."))
-        dest_location_id  = self.company_id.hospitalization_usage_location.id
-        if not dest_location_id:
+    
+        # Destination
+        dest_location = self.company_id.hospitalization_usage_location
+        if not dest_location:
             raise UserError(_("La société n'a pas d'emplacement de destination pour l'hospitalization."))
 
         # source_location_id = self.department_id.source_location_id.id
-
-        _logger.info("Department ID: %s", self.department_id.id)
-        _logger.info("Department Source Location ID: %s", self.department_id.source_location_id.id if self.department_id.source_location_id else 'None')
+        # Source
+        _logger.info("---/-/-Department: %s", self.department_id.name if self.department_id else "No Department")
+        _logger.info("---/-/-Department ID: %s", self.department_id.id if self.department_id else "No Department ID")
+        _logger.info("---/-/-Department source location: %s", self.department_id.source_location_id.name if self.department_id and self.department_id.source_location_id else "No Department Source Location")
+        
         source_location = self.department_id.source_location_id
+        _logger.info("---/--/-Source Location: %s, Destination Location: %s", source_location.name if source_location else "No Source Location", dest_location.name)
         if not source_location:
-            raise UserError("Le département n'a pas d'emplacement source configuré.")
+            raise UserError(_("Le département n'a pas d'emplacement source configuré."))
+
+        _logger.info("---//-Source Location Company: %s, Self Company : %s", source_location.company_id.name if source_location.company_id else "No Company", self.company_id.name if self.company_id else "No Company")
+        if source_location.company_id and source_location.company_id != self.company_id:
+            _logger.info("Source location company: %s, Sample company: %s", source_location.company_id.name, self.company_id.name)
+            raise UserError(_("L'emplacement source appartient à une autre société."))
+        
+        _logger.info("---//-Destination Location Company: %s, Self Company : %s", dest_location.company_id.name if dest_location.company_id else "No Company", self.company_id.name if self.company_id else "No Company")
+        if dest_location.company_id and dest_location.company_id != self.company_id:
+            raise UserError(_("L'emplacement destination appartient à une autre société."))
 
         # Création du picking
         move_lines = []
+        insufficient_products = []
         for line in unprocessed_lines:
             uom_id = line.product_uom.id if line.product_uom else line.product_id.uom_id.id
+            available_qty = line.product_id.with_context(
+                location=source_location.id
+            ).free_qty
+
+            if available_qty < line.qty:
+                _logger.warning("Stock insuffisant pour le produit %s: Disponible %s, Demandé %s",
+                    line.product_id.display_name, available_qty, line.qty)
+                insufficient_products.append(
+                    "%s %s (%s dispo)\n" % (
+                        int(line.qty),
+                        line.product_id.display_name,
+                        int(available_qty)
+                    )
+                )
+
+                
             move_lines.append((0, 0, {
                 'name': line.product_id.name,
                 'product_id': line.product_id.id,
                 'product_uom_qty': line.qty,
                 'product_uom': uom_id,
                 'location_id': source_location.id,
-                'location_dest_id': dest_location_id,
+                'location_dest_id': dest_location.id,
             }))
 
         picking_type = self.env['stock.picking.type'].search([
             ('code', '=', 'outgoing'),
             #  si on a plusieurs entrepôts
             #  ('warehouse_id', '=', self.warehouse_id.id),
-            # ('company_id', '=', self.company_id.id),
+            ('company_id', '=', self.company_id.id),
         ], limit=1)
 
         if not picking_type:
-            raise UserError(_("Aucun type de picking sortant trouvé."))
-
+            raise UserError(_("Aucun type de picking sortant trouvé pour cette société."))
+        
+        if insufficient_products:
+            raise UserError(_(
+                "Stock insuffisant pour :\n\n%s"
+            ) % "\n".join(insufficient_products))
+            
         picking_vals = {
             'partner_id': self.patient_id.partner_id.id,
             'picking_type_id': picking_type.id,
             'location_id': source_location.id,
-            'location_dest_id': dest_location_id,
+            'location_dest_id': dest_location.id,
             'scheduled_date': datetime.now(),
             'origin': self.name,
             'move_ids_without_package': move_lines,
             'department_id': self.department_id.id if self.department_id else False,
+            'company_id': self.company_id.id,
         }
 
         picking = self.env['stock.picking'].create(picking_vals)
         picking.action_confirm()
         picking.action_assign()
-
-        MoveLine = self.env['stock.move.line']
 
         for line in unprocessed_lines:
             move = self.env['stock.move'].search([
@@ -689,28 +724,49 @@ class PatientLabSample(models.Model):
             if not move:
                 continue
             
-            move_line = MoveLine.search([
+            move_line = self.env['stock.move.line'].search([
                 ('move_id', '=', move.id),
-                ('lot_id','=',False)],limit=1)
-            _logger.info("Found move line for product %s: %s", line.product_id.name, move_line)
-            
+            ], limit=1)
+
             if not move_line:
-                continue
+                move_line = self.env['stock.move.line'].create({
+                    'move_id': move.id,
+                    'picking_id': picking.id,
+                    'product_id': move.product_id.id,
+                    'product_uom_id': move.product_uom.id,
+                    'location_id': move.location_id.id,
+                    'location_dest_id': move.location_dest_id.id,
+                    'qty_done': line.qty,
+                })
+            else:
+                move_line.qty_done = line.qty
             
-            move_line.qty_done = line.qty
-            # 🔥 Gestion des lots si tracking activé
-            if move.product_id.tracking != 'none' and not move_line.lot_id:
-                lot = StockLot.create({
+            if move.product_id.tracking != 'none':
+                lot = self.env['stock.production.lot'].create({
                     'name': f'LOT-{self.name}-{line.id}',
                     'product_id': move.product_id.id,
                     'company_id': self.company_id.id,
                 })
                 move_line.lot_id = lot.id
-            
+
             _logger.info("finalizing action_collect ...")
             line.move_id = move.id
-        
-        picking.button_validate()
+            
+        _logger.info("Before validation: state=%s", picking.state)
+        try:
+            _logger.info("Validating picking...")
+            
+            res = picking.button_validate()
+            if isinstance(res, dict):
+                # Wizard returned → process it automatically
+                wizard = self.env[res['res_model']].browse(res['res_id'])
+                wizard.process()
+
+            # _logger.info("Total qty_done: %s", sum(picking.move_line_ids.mapped('qty_done')))
+            _logger.info("Picking validated successfully. Current state: %s", picking.state)
+        except Exception as e:
+            _logger.error("VALIDATION ERROR: %s", str(e))
+            raise
 
     def show_picking(self):
         for rec in self:

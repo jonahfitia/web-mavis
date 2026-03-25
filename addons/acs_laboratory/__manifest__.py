@@ -36,7 +36,7 @@
         'report/report_acs_lab_prescription.xml',
         'report/lab_report.xml',
         'report/lab_report_ctb.xml',
-        'report/lab_report_imm.xml',
+        # 'report/lab_report_imm.xml',
         'report/lab_samples_report.xml',
         'report/lab_samples_report_codebarre.xml',
         'report/paper_format.xml',

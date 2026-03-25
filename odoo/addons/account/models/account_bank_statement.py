@@ -12,6 +12,8 @@ import math
 import base64
 import re
 
+import logging
+_logger = logging.getLogger(__name__)
 
 class AccountCashboxLine(models.Model):
     """ Cash Box Details """
@@ -19,7 +21,7 @@ class AccountCashboxLine(models.Model):
     _description = 'CashBox Line'
     _rec_name = 'coin_value'
     _order = 'coin_value'
-
+    
     @api.depends('coin_value', 'number')
     def _sub_total(self):
         """ Calculates Sub total"""
@@ -31,7 +33,6 @@ class AccountCashboxLine(models.Model):
     subtotal = fields.Float(compute='_sub_total', string='Subtotal', digits=0, readonly=True)
     cashbox_id = fields.Many2one('account.bank.statement.cashbox', string="Cashbox")
     currency_id = fields.Many2one('res.currency', related='cashbox_id.currency_id')
-
 
 class AccountBankStmtCashWizard(models.Model):
     """
@@ -73,7 +74,7 @@ class AccountBankStmtCashWizard(models.Model):
         balance = self.env.context.get('balance')
         statement_id = self.env.context.get('statement_id')
         ## MONEY PAR DEFAUT
-        monaie = ['20000','10000','5000','2000','1000','500','200','100']
+        monaie = ['20000','10000','5000','2000','1000','500','200','100','50','20','10','5','2','1']
         list_cash = []
         for line in monaie:
             list_cash.append((0,0,{
@@ -107,11 +108,24 @@ class AccountBankStmtCashWizard(models.Model):
 
     def _validate_cashbox(self):
         for cashbox in self:
-            if cashbox.start_bank_stmt_ids:
-                cashbox.start_bank_stmt_ids.write({'balance_start': cashbox.total})
-            if cashbox.end_bank_stmt_ids:
-                cashbox.end_bank_stmt_ids.write({'balance_end_real': cashbox.total})
+            if not self.env.context.get('from_cash_transfer'):
+                if cashbox.start_bank_stmt_ids:
+                    cashbox.start_bank_stmt_ids.write({'balance_start': cashbox.total})
 
+            if cashbox.end_bank_stmt_ids:
+                    cashbox.end_bank_stmt_ids.write({'balance_end_real': cashbox.total})
+
+            if self.env.context.get('from_cash_transfer'):
+                transfer_id = self.env.context.get('cash_transfer_id')
+                if transfer_id:
+                    transfer = self.env['account.cash.transfer'].browse(transfer_id)
+                    balance_type = self.env.context.get('balance')
+                    transfer.cashbox_end_id = cashbox.id
+
+                    if balance_type == 'start':
+                        transfer.destination_total_amount = cashbox.total
+                    elif balance_type == 'close':
+                        transfer.source_total_amount = cashbox.total
 
 class AccountBankStmtCloseCheck(models.TransientModel):
     """
@@ -125,7 +139,6 @@ class AccountBankStmtCloseCheck(models.TransientModel):
         if bnk_stmt_id:
             self.env['account.bank.statement'].browse(bnk_stmt_id).button_validate()
         return {'type': 'ir.actions.act_window_close'}
-
 
 class AccountBankStatement(models.Model):
     _name = "account.bank.statement"
@@ -142,7 +155,10 @@ class AccountBankStatement(models.Model):
     def _compute_starting_balance(self):
         for statement in self:
             if statement.previous_statement_id.balance_end_real != statement.balance_start:
-                statement.balance_start = statement.previous_statement_id.balance_end_real
+                # statement.balance_start = statement.previous_statement_id.balance_end_real
+                
+                # it take the ending balance for the previous statement
+                statement.balance_start = statement.previous_statement_id.balance_end
             else:
                 # Need default value
                 statement.balance_start = statement.balance_start or 0.0
@@ -443,6 +459,37 @@ class AccountBankStatement(models.Model):
         lines_of_moves_to_post = self.line_ids.filtered(lambda line: line.move_id.state != 'posted')
         if lines_of_moves_to_post:
             lines_of_moves_to_post.move_id._post(soft=False)
+            
+    def button_cash_transfer(self):
+        """
+        The function `button_cash_transfer` creates records in the `account.cash.transfer` model based on
+        the data in the current object.
+        """
+        for statement in self:
+            # Search the existing transfer linking by this statement
+            transfer = self.env['account.cash.transfer'].search([
+                ('source_cash_register', '=', statement.id)
+            ], limit=1)
+
+            # If it doesn't exist, we create it.
+            if not transfer:
+                transfer = self.env['account.cash.transfer'].create({
+                    'source_cashier': statement.user_id.id,
+                    'source_cash_register': statement.id,
+                    'source_total_amount': round(statement.total_entry_encoding),
+                    'source_date_ending': fields.Datetime.now(),
+                    'state': 'posted',
+                    'cashbox_start_id': statement.cashbox_end_id.id,
+                })
+
+            # go to this transfer's file (existing or new)
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'account.cash.transfer',
+                'view_mode': 'form',
+                'res_id': transfer.id,
+                'target': 'current',
+            }
 
     def button_validate(self):
         if any(statement.state != 'posted' or not statement.all_lines_reconciled for statement in self):
@@ -481,6 +528,17 @@ class AccountBankStatement(models.Model):
         self.write({'state': 'open'})
         self.line_ids.move_id.button_draft()
         self.line_ids.button_undo_reconciliation()
+        
+        for statement in self:
+            transfers = self.env['account.cash.transfer'].search([
+                ('source_cash_register', '=', statement.id)
+            ])
+            validated = transfers.filtered(lambda t: t.state == 'done')
+            if validated:
+                raise UserError(_("Cannot reopen because a validated cash transfer exists."))
+
+            transfers.unlink()
+
 
     def button_reprocess(self):
         """Move the bank statements back to the 'posted' state."""
@@ -548,7 +606,6 @@ class AccountBankStatementLine(models.Model):
         comodel_name='account.bank.statement',
         string='Statement', index=True, required=True, ondelete='cascade',
         check_company=True)
-
     sequence = fields.Integer(index=True, help="Gives the sequence order when displaying a list of bank statement lines.", default=1)
     account_number = fields.Char(string='Bank Account Number', help="Technical field used to store the bank account number before its creation, upon the line's processing")
     partner_name = fields.Char(
@@ -576,7 +633,7 @@ class AccountBankStatementLine(models.Model):
         relation='account_payment_account_bank_statement_line_rel',
         string='Auto-generated Payments',
         help="Payments generated during the reconciliation of this bank statement lines.")
-
+    
     # == Display purpose fields ==
     is_reconciled = fields.Boolean(string='Is Reconciled', store=True,
         compute='_compute_is_reconciled',
@@ -587,7 +644,6 @@ class AccountBankStatementLine(models.Model):
     # -------------------------------------------------------------------------
     # HELPERS
     # -------------------------------------------------------------------------
-
     def _seek_for_lines(self):
         ''' Helper used to dispatch the journal items between:
         - The lines using the liquidity account.
@@ -875,6 +931,16 @@ class AccountBankStatementLine(models.Model):
 
         for vals in vals_list:
             statement = self.env['account.bank.statement'].browse(vals['statement_id'])
+
+            _logger.info("----------------------------")
+            _logger.info("----------------------------  %s", vals_list)
+            _logger.info("----------------------------  %s", vals['statement_id'])
+            _logger.info("----------------------------  %s", statement)
+            _logger.info("----------------------------  %s", statement.state)
+            _logger.info("----------------------------  %s", self._context.get('check_move_validity', True))
+            # _logger.info("----------------------------  %s", vals['move_type'])
+            _logger.info("----------------------------")
+            
             if statement.state != 'open' and self._context.get('check_move_validity', True):
                 raise UserError(_("You can only create statement line in open bank statements."))
 
@@ -1338,3 +1404,4 @@ class AccountBankStatementLine(models.Model):
                 'to_check': False,
                 'line_ids': [(5, 0)] + [(0, 0, line_vals) for line_vals in st_line._prepare_move_line_default_vals()],
             })
+

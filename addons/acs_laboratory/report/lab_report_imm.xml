@@ -213,14 +213,15 @@
                             </td>
                         </tr>
                     </t>
-
                 </t>
             </tbody>
         </table>
     </template>
 
-    <template id="info_patient_external_layout" inherit_id="web.external_layout_lab_imm">
-        <xpath expr="//div[contains(@class, 'header')]" position="inside">
+    <template id="info_patient_external_layout" inherit_id="web.external_layout">
+    <!-- <template id="info_patient_external_layout" inherit_id="web.external_layout"> -->
+        <!-- <xpath expr="//div[contains(@class, 'header')]" position="inside"> -->
+        <xpath expr="//div[contains(@t-attf-class, 'header')]" position="inside">
             <div class="container">
                 <t t-if="len(docs) == 1">
                     <div>
@@ -292,7 +293,6 @@
                     background-color: #ffffff !important;
                 }
             </style>
-
         </xpath>
     </template>
 
@@ -300,6 +300,7 @@
         <!-- Just for Portal Isuse -->
         <t t-set="doc" t-value="doc.sudo()"/>
         <t t-call="web.external_layout_lab_imm">
+        <!-- <t t-call="web.external_layout"> -->
             <t t-set="doc" t-value="doc.with_context({'lang':doc.patient_id.lang})"/>
             <div class="page" style="">
                 <div class="oe_structure"/>

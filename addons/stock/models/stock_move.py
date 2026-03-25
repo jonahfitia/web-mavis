@@ -225,7 +225,7 @@ class StockMove(models.Model):
         for move in self:
             if not move.product_id:
                 move.show_details_visible = False
-            elif len(move.move_line_ids) > 1:
+            elif len(move.move_line_ids) > 1: # type: ignore
                 move.show_details_visible = True
             else:
                 move.show_details_visible = (((consignment_enabled and move.picking_id.picking_type_id.code != 'incoming') or
@@ -303,7 +303,7 @@ class StockMove(models.Model):
                 continue
             prev_moves = move.move_orig_ids.filtered(lambda m: m.state not in ('done', 'cancel') and m.date)
             prev_max_date = max(prev_moves.mapped("date"), default=False)
-            if prev_max_date and prev_max_date > move.date:
+            if prev_max_date and prev_max_date > move.date: # type: ignore
                 move.delay_alert_date = prev_max_date
             else:
                 move.delay_alert_date = False
@@ -322,7 +322,7 @@ class StockMove(models.Model):
             # onchange
             for move in self:
                 quantity_done = 0
-                for move_line in move._get_move_lines():
+                for move_line in move._get_move_lines(): # type: ignore
                     quantity_done += move_line.product_uom_id._compute_quantity(
                         move_line.qty_done, move.product_uom, round=False)
                 move.quantity_done = quantity_done
@@ -358,12 +358,12 @@ class StockMove(models.Model):
                     # do not impact reservation here
                     move_line = self.env['stock.move.line'].create(dict(move._prepare_move_line_vals(), qty_done=quantity_done))
                     move.write({'move_line_ids': [(4, move_line.id)]})
-            elif len(move_lines) == 1:
-                move_lines[0].qty_done = quantity_done
+            elif len(move_lines) == 1: # type: ignore
+                move_lines[0].qty_done = quantity_done # type: ignore
             else:
                 # Bypass the error if we're trying to write the same value.
                 ml_quantity_done = 0
-                for move_line in move_lines:
+                for move_line in move_lines: # type: ignore
                     ml_quantity_done += move_line.product_uom_id._compute_quantity(move_line.qty_done, move.product_uom, round=False)
                 if float_compare(quantity_done, ml_quantity_done, precision_rounding=move.product_uom.rounding) != 0:
                     raise UserError(_("Cannot set the done quantity from this stock move, work directly with the move lines."))
@@ -406,7 +406,7 @@ class StockMove(models.Model):
                 move.availability = move.product_qty
             else:
                 total_availability = self.env['stock.quant']._get_available_quantity(move.product_id, move.location_id) if move.product_id else 0.0
-                move.availability = min(move.product_qty, total_availability)
+                move.availability = min(move.product_qty, total_availability) # type: ignore
 
     @api.depends('product_id', 'picking_type_id', 'picking_id', 'reserved_availability', 'priority', 'state', 'product_uom_qty', 'location_id')
     def _compute_forecast_information(self):
@@ -419,7 +419,7 @@ class StockMove(models.Model):
             move.forecast_availability = move.product_qty
 
         product_moves = (self - not_product_moves)
-        warehouse_by_location = {loc: loc.get_warehouse() for loc in product_moves.location_id}
+        warehouse_by_location = {loc: loc.get_warehouse() for loc in product_moves.location_id} # type: ignore
 
         outgoing_unreserved_moves_per_warehouse = defaultdict(lambda: self.env['stock.move'])
         for move in product_moves:
@@ -498,7 +498,7 @@ class StockMove(models.Model):
                 if ml.qty_done and ml.lot_id not in move.lot_ids:
                     move_lines_commands.append((2, ml.id))
             ls = move.move_line_ids.lot_id
-            for lot in move.lot_ids:
+            for lot in move.lot_ids: # type: ignore
                 if lot not in ls:
                     move_line_vals = self._prepare_move_line_vals(quantity=0)
                     move_line_vals['lot_id'] = lot.id
@@ -518,7 +518,7 @@ class StockMove(models.Model):
             user_warning = _('You cannot perform the move because the unit of measure has a different category as the product unit of measure.')
             for move in moves_error:
                 user_warning += _('\n\n%s --> Product UoM is %s (%s) - Move UoM is %s (%s)') % (move.product_id.display_name, move.product_id.uom_id.name, move.product_id.uom_id.category_id.name, move.product_uom.name, move.product_uom.category_id.name)
-            user_warning += _('\n\nBlocking: %s') % ' ,'.join(moves_error.mapped('name'))
+            user_warning += _('\n\nBlocking: %s') % ' ,'.join(moves_error.mapped('name')) # type: ignore
             raise UserError(user_warning)
 
     def init(self):
@@ -735,21 +735,21 @@ class StockMove(models.Model):
         if not next_serial_count:
             next_serial_count = self.next_serial_count
         # We look if the serial number contains at least one digit.
-        caught_initial_number = regex_findall("\d+", self.next_serial)
+        caught_initial_number = regex_findall("\d+", self.next_serial) # type: ignore
         if not caught_initial_number:
             raise UserError(_('The serial number must contain at least one digit.'))
         # We base the serie on the last number find in the base serial number.
         initial_number = caught_initial_number[-1]
         padding = len(initial_number)
         # We split the serial number to get the prefix and suffix.
-        splitted = regex_split(initial_number, self.next_serial)
+        splitted = regex_split(initial_number, self.next_serial) # type: ignore
         # initial_number could appear several times in the SN, e.g. BAV023B00001S00001
         prefix = initial_number.join(splitted[:-1])
         suffix = splitted[-1]
         initial_number = int(initial_number)
 
         lot_names = []
-        for i in range(0, next_serial_count):
+        for i in range(0, next_serial_count): # type: ignore
             lot_names.append('%s%s%s' % (
                 prefix,
                 str(initial_number + i).zfill(padding),
@@ -780,9 +780,9 @@ class StockMove(models.Model):
     def _merge_moves_fields(self):
         """ This method will return a dict of stock move’s values that represent the values of all moves in `self` merged. """
         state = self._get_relevant_state_among_moves()
-        origin = '/'.join(set(self.filtered(lambda m: m.origin).mapped('origin')))
+        origin = '/'.join(set(self.filtered(lambda m: m.origin).mapped('origin'))) # type: ignore
         return {
-            'product_uom_qty': sum(self.mapped('product_uom_qty')),
+            'product_uom_qty': sum(self.mapped('product_uom_qty')), # type: ignore
             'date': min(self.mapped('date')) if self.mapped('picking_id').move_type == 'direct' else max(self.mapped('date')),
             'move_dest_ids': [(4, m.id) for m in self.mapped('move_dest_ids')],
             'move_orig_ids': [(4, m.id) for m in self.mapped('move_orig_ids')],
@@ -827,7 +827,7 @@ class StockMove(models.Model):
             for picking in self.mapped('picking_id'):
                 candidate_moves_list.append(picking.move_lines)
         else:
-            candidate_moves_list.append(merge_into | self)
+            candidate_moves_list.append(merge_into | self) # type: ignore
 
         # Move removed after merge
         moves_to_unlink = self.env['stock.move']
@@ -880,22 +880,22 @@ class StockMove(models.Model):
         if not moves_todo:
             return 'assigned'
         # The picking should be the same for all moves.
-        if moves_todo[:1].picking_id and moves_todo[:1].picking_id.move_type == 'one':
-            most_important_move = moves_todo[0]
+        if moves_todo[:1].picking_id and moves_todo[:1].picking_id.move_type == 'one': # type: ignore
+            most_important_move = moves_todo[0] # type: ignore
             if most_important_move.state == 'confirmed':
                 return 'confirmed' if most_important_move.product_uom_qty else 'assigned'
             elif most_important_move.state == 'partially_available':
                 return 'confirmed'
             else:
-                return moves_todo[:1].state or 'draft'
-        elif moves_todo[:1].state != 'assigned' and any(move.state in ['assigned', 'partially_available'] for move in moves_todo):
+                return moves_todo[:1].state or 'draft' # type: ignore
+        elif moves_todo[:1].state != 'assigned' and any(move.state in ['assigned', 'partially_available'] for move in moves_todo): # type: ignore
             return 'partially_available'
         else:
-            least_important_move = moves_todo[-1:]
+            least_important_move = moves_todo[-1:] # type: ignore
             if least_important_move.state == 'confirmed' and least_important_move.product_uom_qty == 0:
                 return 'assigned'
             else:
-                return moves_todo[-1:].state or 'draft'
+                return moves_todo[-1:].state or 'draft' # type: ignore
 
     @api.onchange('product_id')
     def onchange_product_id(self):
@@ -906,7 +906,7 @@ class StockMove(models.Model):
     @api.onchange('lot_ids')
     def _onchange_lot_ids(self):
         quantity_done = sum(ml.product_uom_id._compute_quantity(ml.qty_done, self.product_uom) for ml in self.move_line_ids.filtered(lambda ml: not ml.lot_id and ml.lot_name))
-        quantity_done += self.product_id.uom_id._compute_quantity(len(self.lot_ids), self.product_uom)
+        quantity_done += self.product_id.uom_id._compute_quantity(len(self.lot_ids), self.product_uom) # type: ignore
         self.update({'quantity_done': quantity_done})
         used_lots = self.env['stock.move.line'].search([
             ('company_id', '=', self.company_id.id),
@@ -933,7 +933,7 @@ class StockMove(models.Model):
         else:
             move_lines = self.move_line_nosuggest_ids
 
-        for move_line in move_lines:
+        for move_line in move_lines: # type: ignore
             # Look if the `lot_name` contains multiple values.
             if breaking_char in (move_line.lot_name or ''):
                 split_lines = move_line.lot_name.split(breaking_char)
@@ -1098,7 +1098,7 @@ class StockMove(models.Model):
         if len(origins) == 0:
             origin = False
         else:
-            origin = ','.join(origins[:5])
+            origin = ','.join(origins[:5]) # type: ignore
             if len(origins) > 5:
                 origin += "..."
         partners = self.mapped('partner_id')
@@ -1274,7 +1274,7 @@ class StockMove(models.Model):
 
         # Find a candidate move line to update or create a new one.
         for reserved_quant, quantity in quants:
-            to_update = next((line for line in self.move_line_ids if line._reservation_is_updatable(quantity, reserved_quant)), False)
+            to_update = next((line for line in self.move_line_ids if line._reservation_is_updatable(quantity, reserved_quant)), False) # type: ignore
             if to_update:
                 uom_quantity = self.product_id.uom_id._compute_quantity(quantity, to_update.product_uom_id, rounding_method='HALF-UP')
                 uom_quantity = float_round(uom_quantity, precision_digits=rounding)
@@ -1313,7 +1313,7 @@ class StockMove(models.Model):
         move_line_vals_list = []
         for move in self.filtered(lambda m: m.state in ['confirmed', 'waiting', 'partially_available']):
             rounding = roundings[move]
-            missing_reserved_uom_quantity = move.product_uom_qty - reserved_availability[move]
+            missing_reserved_uom_quantity = move.product_uom_qty - reserved_availability[move] # type: ignore
             missing_reserved_quantity = move.product_uom._compute_quantity(missing_reserved_uom_quantity, move.product_id.uom_id, rounding_method='HALF-UP')
             if move._should_bypass_reservation():
                 # create the move line(s) but do not impact quants
@@ -1379,7 +1379,7 @@ class StockMove(models.Model):
                         .mapped('move_line_ids')
                     # As we defer the write on the stock.move's state at the end of the loop, there
                     # could be moves to consider in what our siblings already took.
-                    moves_out_siblings = move.move_orig_ids.mapped('move_dest_ids') - move
+                    moves_out_siblings = move.move_orig_ids.mapped('move_dest_ids') - move # type: ignore
                     moves_out_siblings_to_consider = moves_out_siblings & (StockMove.browse(assigned_moves_ids) + StockMove.browse(partially_available_moves_ids))
                     reserved_moves_out_siblings = moves_out_siblings.filtered(lambda m: m.state in ['partially_available', 'assigned'])
                     move_lines_out_reserved = (reserved_moves_out_siblings | moves_out_siblings_to_consider).mapped('move_line_ids')

@@ -70,6 +70,23 @@ class AccountJournal(models.Model):
         "Select 'Purchase' for vendor bills journals.\n"\
         "Select 'Cash' or 'Bank' for journals that are used in customer or vendor payments.\n"\
         "Select 'General' for miscellaneous operations journals.")
+    is_main_cash = fields.Boolean(
+        string="Main cash",
+        help="Check this box if this journal represents the company's main cash register.")
+    nature_of_payment = fields.Selection([
+            ('cash', 'Cash'),
+            ('mobilemoney', 'Mobile Money'),
+            ('checks', 'Chèques'),
+            ('tpe', 'TPE'),
+            ('other', 'Autres'),
+        ],
+        required=True,
+        help="Select the method of payment used:\n"
+            "- 'Cash' for cash payments.\n"
+            "- 'Mobile Money' for mobile transfer services (e.g., Orange Money, Mvola).\n"
+            "- 'Checks' for check payments.\n"
+            "- 'TPE' for card payments via a terminal.\n"
+            "- 'Other' for any other type of payment.")
     type_control_ids = fields.Many2many('account.account.type', 'journal_account_type_control_rel', 'journal_id', 'type_id', string='Allowed account types')
     account_control_ids = fields.Many2many('account.account', 'journal_account_control_rel', 'journal_id', 'account_id', string='Allowed accounts',
         check_company=True,

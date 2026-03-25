@@ -101,7 +101,7 @@
                     <separator/>
                     <filter string="Draft" name="state_draft" domain="[('state', '=', 'draft')]"/>
                     <filter string="Posted" name="state_posted" domain="[('state', '=', 'posted')]"/>
-                    <separator/>
+                    <separator/> 
                     <filter string="Sent" name="state_sent" domain="[('is_move_sent', '=', True)]"/>
                     <filter string="Bank Matched" name="matched" domain="[('is_matched', '=', True)]"/>
                     <filter string="Reconciled" name="reconciled" domain="[('is_reconciled', '=', True)]"/>

@@ -152,7 +152,7 @@ class CreatePatientandHealthService(models.TransientModel):
             'mobile': self.patient_phone or False,
             'email': self.patient_mail or False,
             'street': self.patient_adress or False,
-            'person_contact': self.patient_person_contact or False,
+            'preson_contact': self.patient_person_contact or False,
             'marital_status': self.patient_marital_status or False,
             'pension': self.patient_pension or False,
             'gov_code': self.gov_code or False,

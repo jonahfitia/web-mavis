@@ -36,6 +36,12 @@ class BarcodeAuthController(http.Controller):
 
         user = card.user_id
 
+        # 🔥 Ici on récupère les départements de la société de l'utilisateur
+        
+        departments = user.department_ids.filtered(
+                lambda d: d.company_id == user.company_id
+            )
+        
         request.session.uid = user.id
         request.session.login = user.login
         request.session.session_token = security.compute_session_token(
@@ -53,7 +59,11 @@ class BarcodeAuthController(http.Controller):
             json.dumps({
                 'success': True,
                 'uid': user.id,
-                'name': user.name
+                'name': user.name,
+                'departments': [
+                    {'id': d.id, 'name': d.name}
+                    for d in departments
+                ]
             }),
             content_type='application/json',
             status=200
@@ -103,3 +113,23 @@ class BarcodeAuthController(http.Controller):
                 content_type='application/json',
                 status=500
             )
+
+    @http.route('/barcode/departements', type='json', auth='user')
+    def get_departments(self):
+
+        user = request.env.user
+
+        departments = request.env['hr.department'].sudo().search([
+            ('company_id', '=', user.company_id.id)
+        ])
+
+        return {
+            "success": True,
+            "departments": [
+                {
+                    "id": dept.id,
+                    "name": dept.name
+                }
+                for dept in departments
+            ]
+        }
