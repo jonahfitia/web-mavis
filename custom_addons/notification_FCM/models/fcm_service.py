@@ -1,4 +1,5 @@
 import json
+from urllib import response
 import requests
 from odoo import modules, models, api, models, _
 import logging
@@ -31,12 +32,8 @@ class FCMService(models.AbstractModel):
         """Envoi notification via FCM HTTP v1"""
         
         # Récupérer la configuration depuis les paramètres Odoo
-        # config = self.env['ir.config_parameter'].sudo()
-        # project_id = config.get_param('fcm.project.id')
-        # private_key = config.get_param('fcm.private.key')
-        # client_email = config.get_param('fcm.client.email')
         creds = self._get_service_account_json()
-
+        
         client_email = creds["client_email"]
         private_key = creds["private_key"]
         project_id = creds["project_id"]
@@ -45,7 +42,6 @@ class FCMService(models.AbstractModel):
             _logger.error("❌ Configuration FCM v1 incomplète")
             return {"success": False, "error": "Configuration FCM incomplète"}
         
-        # Générer le token JWT
         access_token = self._generate_access_token(
             private_key=private_key,
             client_email=client_email
@@ -81,69 +77,67 @@ class FCMService(models.AbstractModel):
             }
         }
         
-        
         url = self.FCM_V1_URL
         _logger.info(f"FCM v1 URL: {url}")
         headers = {
             'Authorization': f'Bearer {access_token}',
             'Content-Type': 'application/json'
         }
-        
         _logger.info(f"FCM v1 Headers: {headers}")
         
         try:
             response = requests.post(url, json=message, headers=headers, timeout=10)
-            response.raise_for_status()
-            return {"success": True, "response": response.json()}
+            _logger.info(f"OAuth response status: {response.status_code}")
+            _logger.info(f"OAuth response body: {response.text}")
+
+            if response.status_code != 200:
+                _logger.error(f"FCM HTTP error {response.status_code}: {response.text}")
+                return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
+
+            response.raise_for_status()        
+            return response.json().get('access_token')
         except requests.exceptions.RequestException as e:
             _logger.error(f"❌ Erreur FCM v1: {e}")
             if e.response is not None:
                 _logger.error(f"FCM Response: {e.response.text}")
             return {"success": False, "error": str(e)}
-
+    
     def _generate_access_token(self, private_key, client_email):
-        """Génère un token d'accès OAuth2"""
         try:
             now = datetime.utcnow()
-            
-            # Créer le JWT
+
             payload = {
                 'iss': client_email,
                 'scope': 'https://www.googleapis.com/auth/firebase.messaging',
                 'aud': 'https://oauth2.googleapis.com/token',
-                'exp': int((now.timestamp() + 3600)),
+                'exp': int(now.timestamp()) + 3600,
                 'iat': int(now.timestamp())
             }
-            # _logger.info(f"JWT Payload: {json.dumps(payload, indent=2)}")
-            
-            # Décoder la clé privée
-            # private_key = private_key.replace('\\n', '\n')
-            _logger.info("Private key formatted for JWT signing.")
-            # Signer le JWT
-            signed_jwt = jwt.encode(
-                payload, 
-                private_key, 
-                algorithm='RS256'
-            )
-            _logger.info(f"Signed JWT: {signed_jwt[:30]}...")  # Log only the beginning for security
-            
-            # Échanger contre un token d'accès
+
+            private_key = private_key.replace('\\n', '\n')
+            signed_jwt = jwt.encode(payload, private_key, algorithm='RS256')
+
             token_url = "https://oauth2.googleapis.com/token"
             token_data = {
                 'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
                 'assertion': signed_jwt
             }
-            _logger.info("Requesting access token from Google OAuth2...")
-            
+
             response = requests.post(token_url, data=token_data, timeout=10)
-            response.raise_for_status()
-            _logger.info("Access token obtained successfully.")
+
+            _logger.error(f"OAuth status: {response.status_code}")
+            _logger.error(f"OAuth body: {response.text}")
+
+            if response.status_code != 200:
+                _logger.error(" Échec obtention token OAuth")
+                return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
+
             return response.json().get('access_token')
-            
+
         except Exception as e:
-            _logger.error(f"❌ Erreur génération token: {str(e)}")
+            _logger.error(f"OAuth exception: {str(e)}")
             return None
-        
+
     @api.model
     def send_notification_to_users(self, user_ids, title, body, data=None):
         """ENVOYER DIRECTEMENT AUX USERS - Méthode principale"""
@@ -188,6 +182,9 @@ class FCMService(models.AbstractModel):
                     body=body,
                     data=data
                 )
+                if result is None:
+                    result = {"success": False, "error": "Unknown error"}   
+                    
                 _logger.info(f"FCM send result for user {user.login}, device {device.device_name}: {result}")
                 results.append({
                     'user': user.name,

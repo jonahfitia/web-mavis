@@ -348,6 +348,7 @@ class MailActivity(models.Model):
 
     @api.model
     def create(self, values):
+        _logger.info(f"  -----++---- Mail Activity create called with values={values}")
         activity = super(MailActivity, self).create(values)
         need_sudo = False
         try:  # in multicompany, reading the partner might break
@@ -376,6 +377,7 @@ class MailActivity(models.Model):
         return activity
 
     def write(self, values):
+        _logger.info(f"  -----++---- Mail Activity write called for IDs {self.ids} with values={values}")
         if values.get('user_id'):
             user_changes = self.filtered(lambda activity: activity.user_id.id != values.get('user_id'))
             pre_responsibles = user_changes.mapped('user_id.partner_id')
@@ -459,6 +461,7 @@ class MailActivity(models.Model):
     def action_done(self):
         """ Wrapper without feedback because web button add context as
         parameter, therefore setting context to feedback """
+        _logger.info(f"  -----++---- Mail Activity action_done called for IDs {self.ids}")
         messages, next_activities = self._action_done()
         return messages.ids and messages.ids[0] or False
 
@@ -502,6 +505,7 @@ class MailActivity(models.Model):
                 - messages is a recordset of posted mail.message
                 - activities is a recordset of mail.activity of forced automically created activities
         """
+        _logger.info(f"  -----++---- Mail Activity _action_done called for IDs {self.ids} with feedback={feedback} and attachment_ids={attachment_ids}")
         # marking as 'done'
         messages = self.env['mail.message']
         next_activities_values = []
